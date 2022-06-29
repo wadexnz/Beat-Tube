@@ -1,0 +1,5 @@
+.eslintignore
+.eslintrc.js
+node_modules
+*.html
+dist
