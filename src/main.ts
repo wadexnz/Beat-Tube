@@ -1,5 +1,7 @@
 import 'uno.css'
-import { Clock } from 'three'
+import { Clock, WebGLRenderer } from 'three'
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js'
+
 import type { OnsetAnalyser } from './OnsetResult'
 import { OnsetByAverage } from './OnsetByAverage'
 import { TunnelScene } from './TunnelScene'
@@ -8,19 +10,23 @@ import screenShare from './ui/ScreenShare'
 
 const clock = new Clock()
 const overlay = document.getElementById('overlay') as HTMLElement
-const tunnelScene = new TunnelScene()
-let animationFrame = 0
+const renderer = buildRenderer()
+overlay.prepend(VRButton.createButton(renderer))
+
+const tunnelScene = new TunnelScene(renderer)
+let animationFrame = false
 let curSource: AudioNode
 
 function audioInputChange(source: AudioNode, audioCtx: AudioContext) {
   if (curSource)
     curSource.disconnect()
-  window.cancelAnimationFrame(animationFrame)
+  renderer.setAnimationLoop(null)
   curSource = source
   const analyser = new OnsetByAverage(audioCtx)
   source.connect(analyser.analyser)
   overlay.style.display = 'none'
-  draw(analyser)
+  animationFrame = true
+  renderer.setAnimationLoop(() => draw(analyser))
 }
 
 function audioError() {
@@ -28,7 +34,7 @@ function audioError() {
 }
 
 function draw(analyser: OnsetAnalyser) {
-  animationFrame = window.requestAnimationFrame(() => draw(analyser))
+  // animationFrame = window.requestAnimationFrame(() => draw(analyser))
   const delta = clock.getDelta()
   const curOnset = analyser.update(delta)
   tunnelScene.update(delta, curOnset)
@@ -43,6 +49,15 @@ document.addEventListener('click', () => {
       overlay.style.display = 'none'
   }
 })
+
+function buildRenderer() {
+  const renderer = new WebGLRenderer()
+  renderer.xr.enabled = true
+  renderer.xr.setReferenceSpaceType('local')
+  renderer.setSize(window.innerWidth, window.innerHeight)
+  document.body.appendChild(renderer.domElement)
+  return renderer
+}
 
 shareFile(audioInputChange, audioError)
 screenShare(audioInputChange, audioError)

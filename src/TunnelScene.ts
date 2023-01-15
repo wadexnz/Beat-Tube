@@ -1,4 +1,7 @@
-import type { Texture } from 'three'
+import type {
+  Texture,
+  WebGLRenderer,
+} from 'three'
 import {
   AmbientLight,
   BackSide,
@@ -13,7 +16,6 @@ import {
   TextureLoader,
   TubeGeometry,
   Vector3,
-  WebGLRenderer,
 } from 'three'
 import type { OnsetResult } from './OnsetResult'
 
@@ -30,33 +32,27 @@ export class TunnelScene {
   aLight: AmbientLight
   clock: Clock
 
-  constructor() {
-    this.renderer = this.buildRenderer()
+  constructor(renderer: WebGLRenderer) {
+    this.renderer = renderer
     this.camera = this.buildCamera()
     this.scene = new Scene()
     this.curve = this.createCurve()
     this.orb = this.buildOrb()
+    this.orb.add(this.camera)
     this.aLight = this.buildALight()
     this.clock = new Clock()
 
     const loader = new TextureLoader()
-    loader.load('img/stonePattern.jpg', (texture: Texture) => {
+    loader.load('/img/stonePattern.jpg', (texture: Texture) => {
       this.buildTube(texture)
       this.render()
     })
     window.addEventListener('resize', () => this.resize())
   }
 
-  buildRenderer() {
-    const renderer = new WebGLRenderer()
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    document.body.appendChild(renderer.domElement)
-    return renderer
-  }
-
   buildCamera() {
     const aspectRatio = window.innerWidth / window.innerHeight
-    const fieldOfView = 60
+    const fieldOfView = 90
     const nearPlane = 1
     const farPlane = 10000
     const camera = new PerspectiveCamera(
@@ -150,12 +146,12 @@ export class TunnelScene {
       this.orb.position,
     )
 
-    this.camera.position.z = this.orb.position.z - Math.cos(ang) * 100
-    this.camera.position.y = this.orb.position.y + Math.sin(ang) * 100
+    // this.camera.position.z = this.orb.position.z - Math.cos(ang) * 100
+    // this.camera.position.y = this.orb.position.y + Math.sin(ang) * 100
     const ort = analyser.flux * 2 * time
     this.orb.rotation.z += ort * this.rotDir
 
-    this.camera.rotation.z = -this.orb.rotation.z
+    // this.camera.rotation.z = -this.orb.rotation.z
 
     this.orb.rotation.x = ang
     this.camera.rotation.x = ang
@@ -182,7 +178,7 @@ export class TunnelScene {
 function randColor(color: number) {
   const inc = 0.15
   if (Math.random() > 0.5 && color + inc < 1)
-    return color += inc
+    return color + inc
   else if (color - inc > 0)
     return color - inc
   else
