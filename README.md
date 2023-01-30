@@ -3,6 +3,5 @@
 Music visualiser built with three js and vite
 
 ## Usage
-
-pnpm install
-pnpm run dev
+- pnpm install
+- pnpm run dev
