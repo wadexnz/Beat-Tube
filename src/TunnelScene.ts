@@ -67,7 +67,7 @@ export class TunnelScene {
   }
 
   buildALight(): AmbientLight {
-    const aLight = new AmbientLight('orange', 0.5) // soft white light
+    const aLight = new AmbientLight('orange', 0.5)
     this.scene.add(aLight)
     return aLight
   }
@@ -184,4 +184,3 @@ function randColor(color: number) {
   else
     return color + inc
 }
-

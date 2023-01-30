@@ -14,22 +14,29 @@
     <div id="overlay" absolute flex justify-center h-screen w-screen items-center>
       <div id="webvr"></div>
       <div c-yellow50 flex flex-col items-center>
-        <h1 m0 text-8xl fw600>
+        <h1 m0 text-8xl fw600 flex >
           Beat Tube
         </h1>
         <div flex justify-center w-screen flex-wrap>
-          <div id="scr-share" cursor-pointer flex flex-col w-sm items-center m-4 shrink-0 b-2 bg-orange-200 bg-op-7 hover-bg-orange-9>
+          <div id="scr-share" cursor-pointer flex flex-col w-sm items-center m-4 shrink-0 b-2 bg-orange-200 bg-op-20 hover-bg-orange-9>
             <div c-orange500 text-2xl fw-600>Share System Audio</div>
             <div>Make sure to tick share system audio</div>
             <b id="scr-error" hidden c-red text-center>No audio detected. This may not be supported in your browser</b>
           </div>
-          <div id='file-share' cursor-pointer flex flex-col w-sm items-center m-4 shrink-0 b-2 bg-blue-800 bg-op-7 hover-bg-blue-9>
-            <input id='file-input' type='file' hidden>
+          <div id="default-play" cursor-pointer flex flex-col w-sm items-center m-4 shrink-0 b-2 bg-green-800 bg-op-20 hover-bg-green-9>
+            <div c-green500 text-2xl fw-600>Preview Music</div>
+            <div>Preview with a default song</div>
+          </div>
+          <div id="file-share" cursor-pointer flex flex-col w-sm items-center m-4 shrink-0 b-2 bg-blue-800 bg-op-20 hover-bg-blue-9>
+            <input id="file-input" type="file" hidden>
             <div c-blue500 text-2xl fw-600>Browse Files</div>
             <div>Browse for audio file</div>
             <b id="file-error" hidden c-red text-center>Error loading audio file</b>
           </div>
         </div>
+        <audio id="default-music">
+          <source src="audio/bensound-allthat.mp3"></source>
+        </audio>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>

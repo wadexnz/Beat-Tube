@@ -7,6 +7,7 @@ import { OnsetByAverage } from './OnsetByAverage'
 import { TunnelScene } from './TunnelScene'
 import shareFile from './ui/FileShare'
 import screenShare from './ui/ScreenShare'
+import previewFile from './ui/PreviewShare'
 
 const clock = new Clock()
 const overlay = document.getElementById('overlay') as HTMLElement
@@ -18,7 +19,7 @@ let animationFrame = false
 let curSource: AudioNode
 
 function audioInputChange(source: AudioNode, audioCtx: AudioContext) {
-  if (curSource)
+  if (curSource && curSource !== source)
     curSource.disconnect()
   renderer.setAnimationLoop(null)
   curSource = source
@@ -34,7 +35,6 @@ function audioError() {
 }
 
 function draw(analyser: OnsetAnalyser) {
-  // animationFrame = window.requestAnimationFrame(() => draw(analyser))
   const delta = clock.getDelta()
   const curOnset = analyser.update(delta)
   tunnelScene.update(delta, curOnset)
@@ -61,3 +61,4 @@ function buildRenderer() {
 
 shareFile(audioInputChange, audioError)
 screenShare(audioInputChange, audioError)
+previewFile(audioInputChange)
