@@ -1,4 +1,4 @@
-import 'uno.css'
+import 'virtual:uno.css'
 import { Clock, WebGLRenderer } from 'three'
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js'
 
