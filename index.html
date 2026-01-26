@@ -8,9 +8,42 @@
       body {
         font-family: 'B612', serif;
       }
+      .scene-arrow {
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        font-size: 3rem;
+        width: 60px;
+        height: 100px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: none;
+      }
+      .scene-arrow:hover {
+        background: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+      .scene-arrow.visible {
+        display: block;
+      }
+      .scene-arrow--left {
+        left: 20px;
+        border-radius: 8px 0 0 8px;
+      }
+      .scene-arrow--right {
+        right: 20px;
+        border-radius: 0 8px 8px 0;
+      }
     </style>
   </head>
   <body class="m-0">
+    <!-- Scene Navigation Arrows -->
+    <button id="scene-prev" class="scene-arrow scene-arrow--left" aria-label="Previous scene">&#8249;</button>
+    <button id="scene-next" class="scene-arrow scene-arrow--right" aria-label="Next scene">&#8250;</button>
     <div id="overlay" class="absolute flex justify-center h-screen w-screen items-center">
       <div id="webvr"></div>
       <div class="c-yellow50 flex flex-col items-center">

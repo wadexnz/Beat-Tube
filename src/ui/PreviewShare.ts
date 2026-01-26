@@ -1,4 +1,4 @@
-import type { AudioCallback } from '../OnsetResult'
+import type { AudioCallback } from '../audio/OnsetResult'
 
 export default function previewFile(audioChange: AudioCallback) {
   const button = document.getElementById('default-play') as HTMLButtonElement
