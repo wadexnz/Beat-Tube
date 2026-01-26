@@ -37,7 +37,7 @@ const TERRAIN = {
     /** Base scroll speed */
     BASE_SPEED: 10,
     /** Speed multiplier for audio flux */
-    FLUX_SPEED_MULTIPLIER: 1600,
+    FLUX_SPEED_MULTIPLIER: 3200,
     /** Minimum time between color changes */
     COLOR_COOLDOWN: 0.15,
 } as const
