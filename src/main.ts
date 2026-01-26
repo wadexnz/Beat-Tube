@@ -7,6 +7,7 @@ import { OnsetByAverage } from './audio/OnsetByAverage'
 import { SceneManager } from './core/SceneManager'
 import { TunnelScene } from './scenes/TunnelScene'
 import { CubeScene } from './scenes/CubeScene'
+import { TerrainScene } from './scenes/TerrainScene'
 import shareFile from './ui/FileShare'
 import screenShare from './ui/ScreenShare'
 import previewFile from './ui/PreviewShare'
@@ -28,6 +29,7 @@ overlay.prepend(VRButton.createButton(renderer))
 const sceneManager = new SceneManager(renderer)
 sceneManager.register(new TunnelScene(renderer))
 sceneManager.register(new CubeScene(renderer))
+sceneManager.register(new TerrainScene(renderer))
 
 // Wire up scene navigation
 sceneNav(sceneManager)
