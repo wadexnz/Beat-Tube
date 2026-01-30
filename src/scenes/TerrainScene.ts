@@ -1,10 +1,14 @@
 import type { WebGLRenderer } from 'three'
 import {
+    BufferAttribute,
+    BufferGeometry,
     Clock,
     Color,
     Mesh,
     PerspectiveCamera,
     PlaneGeometry,
+    Points,
+    PointsMaterial,
     Scene,
     ShaderMaterial,
     Vector3,
@@ -42,6 +46,23 @@ const TERRAIN = {
     COLOR_COOLDOWN: 0.15,
 } as const
 
+const STARFIELD = {
+    /** Number of stars in the sky */
+    STAR_COUNT: 2000,
+    /** Horizontal spread of stars */
+    SPREAD_X: 2000,
+    /** Vertical spread of stars (height) */
+    SPREAD_Y: 600,
+    /** Minimum star height above terrain */
+    MIN_HEIGHT: 40,
+    /** Depth spread of stars */
+    SPREAD_Z: 2000,
+    /** Star size */
+    SIZE: 2,
+    /** Parallax scroll multiplier (relative to terrain) */
+    PARALLAX: 1.5,
+} as const
+
 // =============================================================================
 // Color Palettes for Beat-Reactive Changes
 // =============================================================================
@@ -67,6 +88,11 @@ export class TerrainScene implements IScene {
     private terrainMaterial: ShaderMaterial
     private colorClock: Clock
 
+    // Starfield
+    private starfield: Points
+    private starfieldGeometry: BufferGeometry
+    private starfieldMaterial: PointsMaterial
+
     private offset = 0
     private time = 0
     private currentPaletteIndex = 0
@@ -82,6 +108,12 @@ export class TerrainScene implements IScene {
         this.terrainMesh = mesh
         this.terrainMaterial = material
         this.scene.add(this.terrainMesh)
+
+        const { points, geometry, material: starMaterial } = this.buildStarfield()
+        this.starfield = points
+        this.starfieldGeometry = geometry
+        this.starfieldMaterial = starMaterial
+        this.scene.add(this.starfield)
 
         this.colorClock = new Clock()
 
@@ -129,6 +161,38 @@ export class TerrainScene implements IScene {
         return { mesh, material }
     }
 
+    private buildStarfield(): {
+        points: Points,
+        geometry: BufferGeometry,
+        material: PointsMaterial,
+    } {
+        const count = STARFIELD.STAR_COUNT
+        const positions = new Float32Array(count * 3)
+
+        for (let i = 0; i < count; i++) {
+            const i3 = i * 3
+
+            // Position stars in the sky
+            positions[i3] = (Math.random() - 0.5) * STARFIELD.SPREAD_X
+            positions[i3 + 1] = Math.random() * STARFIELD.SPREAD_Y + STARFIELD.MIN_HEIGHT
+            positions[i3 + 2] = (Math.random() - 0.5) * STARFIELD.SPREAD_Z
+        }
+
+        const geometry = new BufferGeometry()
+        geometry.setAttribute('position', new BufferAttribute(positions, 3))
+
+        const material = new PointsMaterial({
+            color: 0xffffff,
+            size: STARFIELD.SIZE,
+            sizeAttenuation: true,
+            transparent: true,
+            opacity: 0.9,
+        })
+
+        const points = new Points(geometry, material)
+        return { points, geometry, material }
+    }
+
     update(deltaTime: number, audio: OnsetResult): void {
         // Update time and offset for terrain scrolling
         this.time += deltaTime
@@ -141,7 +205,10 @@ export class TerrainScene implements IScene {
         this.terrainMaterial.uniforms.uMeanFlux.value = audio.meanFlux
         this.terrainMaterial.uniforms.uOffset.value = this.offset
 
-        // Handle beat events - change colors
+        // Update starfield - twinkling effect based on audio
+        this.updateStarfield(audio.flux, deltaTime)
+
+        // Handle beat events - change colors instantly
         if (audio.event && this.colorClock.getElapsedTime() > TERRAIN.COLOR_COOLDOWN) {
             this.colorClock = new Clock()
 
@@ -149,10 +216,38 @@ export class TerrainScene implements IScene {
             this.currentPaletteIndex = (this.currentPaletteIndex + 1) % COLOR_PALETTES.length
             const palette = COLOR_PALETTES[this.currentPaletteIndex]
 
-            // Update terrain colors
+            // Update colors instantly
             this.terrainMaterial.uniforms.uBaseColor.value.copy(palette.base)
             this.terrainMaterial.uniforms.uHighlightColor.value.copy(palette.highlight)
+            this.starfieldMaterial.color.copy(palette.highlight)
         }
+    }
+
+    private updateStarfield(flux: number, deltaTime: number): void {
+        const positions = this.starfieldGeometry.getAttribute('position') as BufferAttribute
+        const count = STARFIELD.STAR_COUNT
+
+        // Clamp deltaTime to prevent massive jumps when returning from background tab
+        const clampedDelta = Math.min(deltaTime, 0.1)
+
+        // Calculate scroll speed (same as terrain but with parallax)
+        const scrollSpeed = (TERRAIN.BASE_SPEED + flux * TERRAIN.FLUX_SPEED_MULTIPLIER) * STARFIELD.PARALLAX
+
+        for (let i = 0; i < count; i++) {
+            const i3 = i * 3
+
+            // Move stars forward (parallax scroll with terrain)
+            positions.array[i3 + 2] -= scrollSpeed * clampedDelta
+
+            // Wrap stars when they go behind camera
+            if (positions.array[i3 + 2] < -STARFIELD.SPREAD_Z * 0.5) {
+                positions.array[i3 + 2] = STARFIELD.SPREAD_Z * 0.5
+                positions.array[i3] = (Math.random() - 0.5) * STARFIELD.SPREAD_X
+                positions.array[i3 + 1] = Math.random() * STARFIELD.SPREAD_Y + STARFIELD.MIN_HEIGHT
+            }
+        }
+
+        positions.needsUpdate = true
     }
 
     render(): void {
@@ -169,5 +264,7 @@ export class TerrainScene implements IScene {
     dispose(): void {
         this.terrainMesh.geometry.dispose()
         this.terrainMaterial.dispose()
+        this.starfieldGeometry.dispose()
+        this.starfieldMaterial.dispose()
     }
 }

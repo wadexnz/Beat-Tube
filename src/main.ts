@@ -27,9 +27,12 @@ overlay.prepend(VRButton.createButton(renderer))
 
 // Initialize SceneManager and register scenes
 const sceneManager = new SceneManager(renderer)
+sceneManager.register(new TerrainScene(renderer))
 sceneManager.register(new TunnelScene(renderer))
 sceneManager.register(new CubeScene(renderer))
-sceneManager.register(new TerrainScene(renderer))
+
+// Render initial scene
+sceneManager.render()
 
 // Wire up scene navigation
 sceneNav(sceneManager)

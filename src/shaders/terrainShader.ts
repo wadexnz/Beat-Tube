@@ -133,11 +133,11 @@ varying float vHeight;
 varying vec2 vUv;
 
 void main() {
-    // Normalize height for color blending
-    float heightNorm = smoothstep(-40.0, 40.0, vHeight);
+    // Smooth height gradient: valleys are black, peaks get highlight color
+    float heightNorm = smoothstep(0.0, 80.0, vHeight);
     
-    // Blend between base and highlight based on height
-    vec3 color = mix(uBaseColor, uHighlightColor, heightNorm);
+    // Valleys stay dark/black, peaks get the highlight color
+    vec3 color = mix(vec3(0.02, 0.02, 0.05), uHighlightColor, heightNorm);
     
     // Subtle grid lines for depth perception
     float gridX = abs(fract(vUv.x * 50.0) - 0.5);

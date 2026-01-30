@@ -92,7 +92,6 @@ export class TunnelScene implements IScene {
         const loader = new TextureLoader()
         loader.load('/img/stonePattern.jpg', (texture: Texture) => {
             this.buildTube(texture)
-            this.render()
         })
         window.addEventListener('resize', () => this.resize())
     }
