@@ -1,4 +1,4 @@
-import type { AudioCallback } from '../OnsetResult'
+import type { AudioCallback } from '../audio/OnsetResult'
 
 export default function shareFile(audioChange: AudioCallback, audioError: () => void) {
   const scrShare = document.getElementById('scr-share') as HTMLElement

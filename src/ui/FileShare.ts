@@ -1,4 +1,4 @@
-import type { AudioCallback } from '../OnsetResult'
+import type { AudioCallback } from '../audio/OnsetResult'
 
 // add event listeners to the file input and file share buttons and call the audioChange callback when a file is selected and decoded
 export default function shareFile(audioChange: AudioCallback, audioError: () => void) {
