@@ -1,10 +1,14 @@
 import type { WebGLRenderer } from 'three'
 import {
+    BufferAttribute,
+    BufferGeometry,
     Clock,
     Color,
     Mesh,
     PerspectiveCamera,
     PlaneGeometry,
+    Points,
+    PointsMaterial,
     Scene,
     ShaderMaterial,
     SphereGeometry,
@@ -56,6 +60,31 @@ const SUN = {
     HEIGHT: 40,
 } as const
 
+const STARFIELD = {
+    /** Number of stars */
+    COUNT: 1500,
+    /** Horizontal spread */
+    SPREAD_X: 3000,
+    /** Vertical range (above grid) */
+    MIN_Y: 30,
+    MAX_Y: 500,
+    /** Depth spread */
+    SPREAD_Z: 3000,
+    /** Star particle size */
+    SIZE: 1.5,
+} as const
+
+const SKY = {
+    /** Backdrop plane width */
+    WIDTH: 4000,
+    /** Backdrop plane height */
+    HEIGHT: 800,
+    /** Distance from camera (behind sun) */
+    DISTANCE: 2200,
+    /** Vertical offset */
+    Y_OFFSET: 150,
+} as const
+
 // =============================================================================
 // Color Palettes — synthwave neon tones
 // =============================================================================
@@ -79,6 +108,10 @@ export class NeonGridScene implements IScene {
     private gridMesh: Mesh
     private gridMaterial: ShaderMaterial
     private sunMesh: Mesh
+    private skyMesh: Mesh
+    private skyMaterial: ShaderMaterial
+    private starfield: Points
+    private starfieldMaterial: PointsMaterial
     private colorClock: Clock
 
     private offset = 0
@@ -96,8 +129,18 @@ export class NeonGridScene implements IScene {
         this.gridMaterial = material
         this.scene.add(this.gridMesh)
 
+        const { mesh: skyMesh, material: skyMat } = this.buildSky()
+        this.skyMesh = skyMesh
+        this.skyMaterial = skyMat
+        this.scene.add(this.skyMesh)
+
         this.sunMesh = this.buildSun()
         this.scene.add(this.sunMesh)
+
+        const { points, material: starMat } = this.buildStarfield()
+        this.starfield = points
+        this.starfieldMaterial = starMat
+        this.scene.add(this.starfield)
 
         this.colorClock = new Clock()
 
@@ -190,6 +233,68 @@ export class NeonGridScene implements IScene {
         return mesh
     }
 
+    private buildSky(): { mesh: Mesh, material: ShaderMaterial } {
+        const geometry = new PlaneGeometry(SKY.WIDTH, SKY.HEIGHT)
+        const palette = COLOR_PALETTES[0]
+        const material = new ShaderMaterial({
+            vertexShader: /* glsl */ `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: /* glsl */ `
+                uniform vec3 uGlowColor;
+                uniform float uFlux;
+                varying vec2 vUv;
+                void main() {
+                    // Vertical gradient: bright glow at bottom (horizon), fading to black at top
+                    float grad = 1.0 - vUv.y;
+                    float glow = pow(grad, 3.0);
+                    float brightness = 0.3 + uFlux * 1.0;
+                    vec3 color = uGlowColor * glow * brightness;
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `,
+            uniforms: {
+                uGlowColor: { value: palette.sun.clone() },
+                uFlux: { value: 0 },
+            },
+            depthWrite: false,
+        })
+
+        const mesh = new Mesh(geometry, material)
+        mesh.position.set(0, SKY.Y_OFFSET, SKY.DISTANCE)
+        return { mesh, material }
+    }
+
+    private buildStarfield(): { points: Points, material: PointsMaterial } {
+        const count = STARFIELD.COUNT
+        const positions = new Float32Array(count * 3)
+
+        for (let i = 0; i < count; i++) {
+            const i3 = i * 3
+            positions[i3] = (Math.random() - 0.5) * STARFIELD.SPREAD_X
+            positions[i3 + 1] = Math.random() * (STARFIELD.MAX_Y - STARFIELD.MIN_Y) + STARFIELD.MIN_Y
+            positions[i3 + 2] = Math.random() * STARFIELD.SPREAD_Z
+        }
+
+        const geometry = new BufferGeometry()
+        geometry.setAttribute('position', new BufferAttribute(positions, 3))
+
+        const material = new PointsMaterial({
+            color: 0xffffff,
+            size: STARFIELD.SIZE,
+            sizeAttenuation: true,
+            transparent: true,
+            opacity: 0.7,
+        })
+
+        const points = new Points(geometry, material)
+        return { points, material }
+    }
+
     update(deltaTime: number, audio: OnsetResult): void {
         // Scroll grid toward camera, speed driven by flux
         const scrollSpeed = GRID.BASE_SPEED + audio.flux * GRID.FLUX_SPEED_MULTIPLIER
@@ -199,9 +304,10 @@ export class NeonGridScene implements IScene {
         this.gridMaterial.uniforms.uFlux.value = audio.flux
         this.gridMaterial.uniforms.uOffset.value = this.offset
 
-        // Update sun flux
+        // Update sun and sky flux
         const sunMaterial = this.sunMesh.material as ShaderMaterial
         sunMaterial.uniforms.uFlux.value = audio.flux
+        this.skyMaterial.uniforms.uFlux.value = audio.flux
 
         // Handle beat events — instant color swap
         if (audio.event && this.colorClock.getElapsedTime() > GRID.COLOR_COOLDOWN) {
@@ -211,8 +317,9 @@ export class NeonGridScene implements IScene {
             const palette = COLOR_PALETTES[this.currentPaletteIndex]
 
             this.gridMaterial.uniforms.uGridColor.value.copy(palette.grid)
-            const sunMaterial = this.sunMesh.material as ShaderMaterial
-            sunMaterial.uniforms.uSunColor.value.copy(palette.sun)
+            const sunMat = this.sunMesh.material as ShaderMaterial
+            sunMat.uniforms.uSunColor.value.copy(palette.sun)
+            this.skyMaterial.uniforms.uGlowColor.value.copy(palette.sun)
         }
     }
 
@@ -232,5 +339,9 @@ export class NeonGridScene implements IScene {
         this.gridMaterial.dispose()
         this.sunMesh.geometry.dispose()
         ;(this.sunMesh.material as ShaderMaterial).dispose()
+        this.skyMesh.geometry.dispose()
+        this.skyMaterial.dispose()
+        this.starfield.geometry.dispose()
+        this.starfieldMaterial.dispose()
     }
 }
