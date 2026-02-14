@@ -44,11 +44,13 @@ void main() {
     // Use world-space coordinates for grid lines so they tile correctly
     float cellSize = 40.0;
 
-    float lineX = abs(fract(vWorldPos.x / cellSize) - 0.5);
-    float lineZ = abs(fract((vWorldPos.z + uOffset) / cellSize) - 0.5);
-
-    float gridX = 1.0 - smoothstep(0.45, 0.49, lineX);
-    float gridZ = 1.0 - smoothstep(0.45, 0.49, lineZ);
+    vec2 gridUv = vec2(vWorldPos.x / cellSize, (vWorldPos.z + uOffset) / cellSize);
+    vec2 fw = fwidth(gridUv);
+    vec2 halfLine = vec2(0.02);
+    vec2 a = smoothstep(halfLine - fw, halfLine + fw, fract(gridUv));
+    vec2 b = smoothstep(halfLine - fw, halfLine + fw, 1.0 - fract(gridUv));
+    float gridX = 1.0 - min(a.x, b.x);
+    float gridZ = 1.0 - min(a.y, b.y);
     float grid = max(gridX, gridZ);
 
     // Fog — fade to black with distance
@@ -57,8 +59,8 @@ void main() {
     // Height glow — raised areas brighter
     float heightGlow = smoothstep(0.0, 20.0, abs(vHeight)) * 0.4;
 
-    // Base intensity: grid lines + subtle fill on raised parts
-    float intensity = grid * 0.7 + heightGlow * 0.2;
+    // Base intensity: grid lines only, height glow on lines
+    float intensity = grid * (0.7 + heightGlow * 0.3);
     intensity *= fog;
 
     // Flux adds brightness boost — visible at rest (0.5 base)
