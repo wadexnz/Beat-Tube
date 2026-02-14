@@ -30,7 +30,7 @@ const GRID = {
   /** Subdivision segments (enough for smooth waves) */
   SEGMENTS: 128,
   /** Camera field of view */
-  FOV: 65,
+  FOV: 60,
   /** Camera near plane */
   NEAR: 1,
   /** Camera far plane */
@@ -40,11 +40,11 @@ const GRID = {
   /** Camera look-ahead distance */
   LOOK_AHEAD: 300,
   /** Base scroll speed */
-  BASE_SPEED: 10,
+  BASE_SPEED: 0,
   /** Speed multiplier for audio flux */
   FLUX_SPEED_MULTIPLIER: 4000,
   /** Minimum time between color changes */
-  COLOR_COOLDOWN: 0.15,
+  COLOR_COOLDOWN: 0,
 } as const;
 
 const SUN = {
@@ -229,16 +229,10 @@ export class NeonGridScene implements IScene {
                 uniform float uFlux;
                 varying vec2 vUv;
                 void main() {
-                    // Horizontal scanline bands — only in bottom half
-                    float scanline = smoothstep(0.46, 0.5, abs(fract(vUv.y * 10.0) - 0.5));
-                    // Fade: bottom dark, top bright (half-set sun)
-                    float fade = smoothstep(0.25, 0.6, vUv.y);
-                    // Brightness pulses strongly with flux
                     float brightness = 0.4 + uFlux * 3.0;
-                    vec3 color = uSunColor * (0.4 + fade * 0.6) * brightness;
-                    // Cut scanline gaps in bottom portion
-                    float gap = mix(1.0 - scanline * 0.7, 1.0, fade);
-                    gl_FragColor = vec4(color * gap, 1.0);
+                    float fade = smoothstep(0.2, 0.65, vUv.y);
+                    vec3 color = uSunColor * (0.3 + fade * 0.7) * brightness;
+                    gl_FragColor = vec4(color, 1.0);
                 }
             `,
       uniforms: {

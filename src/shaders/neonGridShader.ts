@@ -16,14 +16,13 @@ void main() {
 
     // Mirrored hills on left and right edges, scrolling with grid
     float scrolledZ = pos.z + uOffset;
-    float edgeDist = abs(pos.x) / 1500.0; // 0 at center, 1 at edge (half of 3000 width)
-    float edgeMask = smoothstep(0.0, 0.5, edgeDist); // hills ramp up quickly from center
-    float hill1 = sin(scrolledZ * 0.008) * 600.0;
-    float hill2 = sin(scrolledZ * 0.02 + 2.0) * 240.0;
+    float edgeDist = abs(pos.x) / 1500.0; // 0 at center, 1 at edge
+    float edgeMask = smoothstep(0.0, 1.0, edgeDist);
+    float hill1 = sin(scrolledZ * 0.008) * 2000.0;
     // Fade hills to zero near the buildings to prevent intersection
     float worldZ = (modelMatrix * vec4(pos, 1.0)).z;
     float depthFade = smoothstep(1850.0, 1600.0, worldZ);
-    pos.y += (hill1 + hill2) * edgeMask * edgeMask * uFlux * depthFade;
+    pos.y += (hill1) * edgeMask * uFlux * depthFade;
 
     vHeight = pos.y;
     vWorldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
