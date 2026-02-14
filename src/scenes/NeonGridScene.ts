@@ -45,15 +45,15 @@ const GRID = {
 
 const SUN = {
     /** Sun radius */
-    RADIUS: 80,
+    RADIUS: 150,
     /** Horizontal segments */
     WIDTH_SEGMENTS: 32,
     /** Vertical segments */
     HEIGHT_SEGMENTS: 16,
     /** Distance from camera */
-    DISTANCE: 1400,
-    /** Height above grid */
-    HEIGHT: 100,
+    DISTANCE: 1800,
+    /** Height above grid — half submerged below horizon */
+    HEIGHT: 40,
 } as const
 
 // =============================================================================
@@ -160,20 +160,24 @@ export class NeonGridScene implements IScene {
             `,
             fragmentShader: /* glsl */ `
                 uniform vec3 uSunColor;
+                uniform float uFlux;
                 varying vec2 vUv;
                 void main() {
-                    // Horizontal scanline bands
-                    float scanline = smoothstep(0.48, 0.5, abs(fract(vUv.y * 12.0) - 0.5));
-                    // Fade bottom half to dark (half-set sun look)
-                    float fade = smoothstep(0.3, 0.55, vUv.y);
-                    vec3 color = uSunColor * (0.6 + fade * 0.4);
-                    // Cut scanline gaps in bottom half
-                    float gap = mix(1.0 - scanline * 0.6, 1.0, fade);
+                    // Horizontal scanline bands — only in bottom half
+                    float scanline = smoothstep(0.46, 0.5, abs(fract(vUv.y * 10.0) - 0.5));
+                    // Fade: bottom dark, top bright (half-set sun)
+                    float fade = smoothstep(0.25, 0.6, vUv.y);
+                    // Brightness pulses with flux
+                    float brightness = 0.7 + uFlux * 0.8;
+                    vec3 color = uSunColor * (0.4 + fade * 0.6) * brightness;
+                    // Cut scanline gaps in bottom portion
+                    float gap = mix(1.0 - scanline * 0.7, 1.0, fade);
                     gl_FragColor = vec4(color * gap, 1.0);
                 }
             `,
             uniforms: {
                 uSunColor: { value: palette.sun.clone() },
+                uFlux: { value: 0 },
             },
         })
 
@@ -190,6 +194,10 @@ export class NeonGridScene implements IScene {
         // Update shader uniforms
         this.gridMaterial.uniforms.uFlux.value = audio.flux
         this.gridMaterial.uniforms.uOffset.value = this.offset
+
+        // Update sun flux
+        const sunMaterial = this.sunMesh.material as ShaderMaterial
+        sunMaterial.uniforms.uFlux.value = audio.flux
 
         // Handle beat events — instant color swap
         if (audio.event && this.colorClock.getElapsedTime() > GRID.COLOR_COOLDOWN) {
