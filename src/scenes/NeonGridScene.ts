@@ -152,10 +152,14 @@ export class NeonGridScene implements IScene {
         const palette = COLOR_PALETTES[0]
         const material = new ShaderMaterial({
             vertexShader: /* glsl */ `
+                uniform float uFlux;
                 varying vec2 vUv;
                 void main() {
                     vUv = uv;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    // Scale sun with flux
+                    float scale = 1.0 + uFlux * 0.4;
+                    vec3 pos = position * scale;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
                 }
             `,
             fragmentShader: /* glsl */ `
@@ -167,8 +171,8 @@ export class NeonGridScene implements IScene {
                     float scanline = smoothstep(0.46, 0.5, abs(fract(vUv.y * 10.0) - 0.5));
                     // Fade: bottom dark, top bright (half-set sun)
                     float fade = smoothstep(0.25, 0.6, vUv.y);
-                    // Brightness pulses with flux
-                    float brightness = 0.7 + uFlux * 0.8;
+                    // Brightness pulses strongly with flux
+                    float brightness = 0.4 + uFlux * 3.0;
                     vec3 color = uSunColor * (0.4 + fade * 0.6) * brightness;
                     // Cut scanline gaps in bottom portion
                     float gap = mix(1.0 - scanline * 0.7, 1.0, fade);
