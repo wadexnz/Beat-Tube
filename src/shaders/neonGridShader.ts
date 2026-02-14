@@ -14,13 +14,16 @@ varying float vDepth;
 void main() {
     vec3 pos = position;
 
-    // Scrolled Z for wave calculation
+    // Mirrored hills on left and right edges, scrolling with grid
     float scrolledZ = pos.z + uOffset;
-
-    // Wave displacement driven by flux — multiple sine layers
-    float wave1 = sin(scrolledZ * 0.04 + pos.x * 0.02) * uFlux * 40.0;
-    float wave2 = sin(scrolledZ * 0.08 - pos.x * 0.03) * uFlux * 15.0;
-    pos.y += wave1 + wave2;
+    float edgeDist = abs(pos.x) / 1500.0; // 0 at center, 1 at edge (half of 3000 width)
+    float edgeMask = smoothstep(0.0, 0.5, edgeDist); // hills ramp up quickly from center
+    float hill1 = sin(scrolledZ * 0.008) * 600.0;
+    float hill2 = sin(scrolledZ * 0.02 + 2.0) * 240.0;
+    // Fade hills to zero near the buildings to prevent intersection
+    float worldZ = (modelMatrix * vec4(pos, 1.0)).z;
+    float depthFade = smoothstep(1850.0, 1600.0, worldZ);
+    pos.y += (hill1 + hill2) * edgeMask * edgeMask * uFlux * depthFade;
 
     vHeight = pos.y;
     vWorldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
@@ -53,15 +56,11 @@ void main() {
     float gridZ = 1.0 - min(a.y, b.y);
     float grid = max(gridX, gridZ);
 
-    // Fog — fade to black with distance
-    float fog = 1.0 - smoothstep(100.0, 2500.0, vDepth);
-
     // Height glow — raised areas brighter
     float heightGlow = smoothstep(0.0, 20.0, abs(vHeight)) * 0.4;
 
     // Base intensity: grid lines only, height glow on lines
     float intensity = grid * (0.7 + heightGlow * 0.3);
-    intensity *= fog;
 
     // Flux adds brightness boost — visible at rest (0.5 base)
     intensity *= 0.5 + uFlux * 1.2;

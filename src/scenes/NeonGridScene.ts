@@ -24,25 +24,25 @@ import {
 
 const GRID = {
   /** Grid plane width */
-  WIDTH: 1600,
+  WIDTH: 3000,
   /** Grid plane depth */
-  DEPTH: 3000,
+  DEPTH: 5000,
   /** Subdivision segments (enough for smooth waves) */
   SEGMENTS: 128,
   /** Camera field of view */
-  FOV: 45,
+  FOV: 65,
   /** Camera near plane */
   NEAR: 1,
   /** Camera far plane */
-  FAR: 4000,
+  FAR: 6000,
   /** Camera height above grid */
-  CAMERA_HEIGHT: 65,
+  CAMERA_HEIGHT: 60,
   /** Camera look-ahead distance */
   LOOK_AHEAD: 300,
   /** Base scroll speed */
-  BASE_SPEED: 30,
+  BASE_SPEED: 10,
   /** Speed multiplier for audio flux */
-  FLUX_SPEED_MULTIPLIER: 2000,
+  FLUX_SPEED_MULTIPLIER: 4000,
   /** Minimum time between color changes */
   COLOR_COOLDOWN: 0.15,
 } as const;
