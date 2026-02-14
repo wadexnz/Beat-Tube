@@ -8,6 +8,7 @@ import { SceneManager } from './core/SceneManager'
 import { TunnelScene } from './scenes/TunnelScene'
 import { CubeScene } from './scenes/CubeScene'
 import { TerrainScene } from './scenes/TerrainScene'
+import { NeonGridScene } from './scenes/NeonGridScene'
 import shareFile from './ui/FileShare'
 import screenShare from './ui/ScreenShare'
 import previewFile from './ui/PreviewShare'
@@ -27,6 +28,7 @@ overlay.prepend(VRButton.createButton(renderer))
 
 // Initialize SceneManager and register scenes
 const sceneManager = new SceneManager(renderer)
+sceneManager.register(new NeonGridScene(renderer))
 sceneManager.register(new TerrainScene(renderer))
 sceneManager.register(new TunnelScene(renderer))
 sceneManager.register(new CubeScene(renderer))
