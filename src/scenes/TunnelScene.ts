@@ -29,8 +29,14 @@ const TUNNEL = {
   SEGMENT_LENGTH: 1600,
   /** Tube radius in world units */
   RADIUS: 100,
-  /** Geometry tube segments for smoothness */
-  TUBE_SEGMENTS: 500,
+  /** Number of path segments per generated tunnel chunk */
+  CHUNK_SEGMENTS: 8,
+  /** Geometry tube segments per generated chunk */
+  CHUNK_TUBE_SEGMENTS: 48,
+  /** Number of chunks kept behind the camera */
+  CHUNKS_BEHIND: 1,
+  /** Number of chunks kept ahead of the camera */
+  CHUNKS_AHEAD: 3,
   /** Camera field of view */
   FOV: 90,
   /** Camera near plane */
@@ -63,6 +69,7 @@ function randColor(color: number): number {
 
 export class TunnelScene implements IScene {
   private totalLength: number
+  private chunkCount: number
   private speed: number
   private rotDir = 1
   private pos = 0
@@ -71,19 +78,24 @@ export class TunnelScene implements IScene {
   private scene: Scene
   private camera: PerspectiveCamera
   private curve: CatmullRomCurve3
+  private curvePoints: Vector3[]
   private orb: Object3D
   private aLight: AmbientLight
   private clock: Clock
-  private tubeMesh?: Mesh
+  private tubeMaterial?: MeshPhongMaterial
+  private tubeMeshes = new Map<number, Mesh>()
+  private activeTunnelChunk = -1
 
   constructor(renderer: WebGLRenderer) {
     this.renderer = renderer
     this.totalLength = TUNNEL.SEGMENTS * TUNNEL.SEGMENT_LENGTH
+    this.chunkCount = Math.ceil(TUNNEL.SEGMENTS / TUNNEL.CHUNK_SEGMENTS)
     this.speed = toTunnelSpeed(SPEED.NORMAL)
 
     this.camera = this.buildCamera()
     this.scene = new Scene()
-    this.curve = this.createCurve()
+    this.curvePoints = this.createCurvePoints()
+    this.curve = new CatmullRomCurve3(this.curvePoints)
     this.orb = this.buildOrb()
     this.orb.add(this.camera)
     this.aLight = this.buildALight()
@@ -115,7 +127,7 @@ export class TunnelScene implements IScene {
     return aLight
   }
 
-  private createCurve(): CatmullRomCurve3 {
+  private createCurvePoints(): Vector3[] {
     const points: Vector3[] = [new Vector3(0, 0, 0)]
     let height = 0
     let width = 0
@@ -129,28 +141,75 @@ export class TunnelScene implements IScene {
         (width += Math.sqrt(TUNNEL.SEGMENT_LENGTH * TUNNEL.SEGMENT_LENGTH - en * en)),
       ))
     }
-    return new CatmullRomCurve3(points)
+    return points
   }
 
   private buildTube(texture: Texture): void {
+    this.tubeMaterial = new MeshPhongMaterial({
+      side: BackSide,
+      map: texture,
+    })
+    if (this.tubeMaterial.map) {
+      this.tubeMaterial.map.wrapS = RepeatWrapping
+      this.tubeMaterial.map.wrapT = RepeatWrapping
+      this.tubeMaterial.map.repeat.set(TUNNEL.CHUNK_TUBE_SEGMENTS / 3, 2)
+    }
+    this.updateTunnelChunks()
+  }
+
+  private updateTunnelChunks(): void {
+    if (!this.tubeMaterial)
+      return
+
+    const currentSegment = Math.min(
+      Math.floor(this.pos * TUNNEL.SEGMENTS),
+      TUNNEL.SEGMENTS - 1,
+    )
+    const currentChunk = Math.floor(currentSegment / TUNNEL.CHUNK_SEGMENTS)
+
+    if (currentChunk === this.activeTunnelChunk)
+      return
+
+    this.activeTunnelChunk = currentChunk
+    const firstChunk = Math.max(0, currentChunk - TUNNEL.CHUNKS_BEHIND)
+    const lastChunk = Math.min(this.chunkCount - 1, currentChunk + TUNNEL.CHUNKS_AHEAD)
+    const visibleChunks = new Set<number>()
+
+    for (let chunk = firstChunk; chunk <= lastChunk; chunk++) {
+      visibleChunks.add(chunk)
+      if (!this.tubeMeshes.has(chunk))
+        this.addTunnelChunk(chunk)
+    }
+
+    for (const [chunk, mesh] of this.tubeMeshes) {
+      if (!visibleChunks.has(chunk)) {
+        this.scene.remove(mesh)
+        mesh.geometry.dispose()
+        this.tubeMeshes.delete(chunk)
+      }
+    }
+  }
+
+  private addTunnelChunk(chunk: number): void {
+    if (!this.tubeMaterial)
+      return
+
+    const startSegment = chunk * TUNNEL.CHUNK_SEGMENTS
+    const endSegment = Math.min(startSegment + TUNNEL.CHUNK_SEGMENTS, TUNNEL.SEGMENTS)
+    const firstPoint = Math.max(0, startSegment - 1)
+    const lastPoint = Math.min(this.curvePoints.length - 1, endSegment + 1)
+    const chunkCurve = new CatmullRomCurve3(this.curvePoints.slice(firstPoint, lastPoint + 1))
     const geometry = new TubeGeometry(
-      this.curve,
-      TUNNEL.TUBE_SEGMENTS,
+      chunkCurve,
+      TUNNEL.CHUNK_TUBE_SEGMENTS,
       TUNNEL.RADIUS,
       12,
       false,
     )
-    const tubeMaterial = new MeshPhongMaterial({
-      side: BackSide,
-      map: texture,
-    })
-    if (tubeMaterial.map) {
-      tubeMaterial.map.wrapS = RepeatWrapping
-      tubeMaterial.map.wrapT = RepeatWrapping
-      tubeMaterial.map.repeat.set(TUNNEL.TUBE_SEGMENTS / 3, 2)
-    }
-    this.tubeMesh = new Mesh(geometry, tubeMaterial)
-    this.scene.add(this.tubeMesh)
+    const mesh = new Mesh(geometry, this.tubeMaterial)
+
+    this.tubeMeshes.set(chunk, mesh)
+    this.scene.add(mesh)
   }
 
   private buildOrb(): Object3D {
@@ -179,6 +238,7 @@ export class TunnelScene implements IScene {
     if (this.pos + change >= 1)
       this.pos = 0
     this.orb.position.copy(this.curve.getPoint((this.pos += change) % 1))
+    this.updateTunnelChunks()
 
     const nextPoint = this.curve.getPoint((this.pos + change) % 1)
     const ang = this.looking(nextPoint, this.orb.position)
@@ -207,12 +267,14 @@ export class TunnelScene implements IScene {
   }
 
   dispose(): void {
-    if (this.tubeMesh) {
-      this.tubeMesh.geometry.dispose()
-      if (this.tubeMesh.material instanceof MeshPhongMaterial) {
-        this.tubeMesh.material.map?.dispose()
-        this.tubeMesh.material.dispose()
-      }
+    for (const mesh of this.tubeMeshes.values()) {
+      mesh.geometry.dispose()
+    }
+    this.tubeMeshes.clear()
+
+    if (this.tubeMaterial) {
+      this.tubeMaterial.map?.dispose()
+      this.tubeMaterial.dispose()
     }
   }
 }
