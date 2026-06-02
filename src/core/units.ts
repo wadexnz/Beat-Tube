@@ -8,9 +8,9 @@
 // =============================================================================
 
 export const SPEED = {
-    SLOW: 0.2,
-    NORMAL: 0.5,
-    FAST: 0.8,
+  SLOW: 0.2,
+  NORMAL: 0.5,
+  FAST: 0.8,
 } as const
 
 // =============================================================================
@@ -34,14 +34,14 @@ const BASE_MOVEMENT_FACTOR = 0.025
  * Convert normalized speed (0-1) to tunnel movement speed (pixels/sec)
  */
 export function toTunnelSpeed(normalized: number): number {
-    return normalized * TUNNEL_MAX_SPEED
+  return normalized * TUNNEL_MAX_SPEED
 }
 
 /**
  * Convert normalized speed (0-1) to rotation speed (radians/sec)
  */
 export function toRotationSpeed(normalized: number): number {
-    return normalized * CUBE_MAX_ROTATION
+  return normalized * CUBE_MAX_ROTATION
 }
 
 /**
@@ -49,5 +49,5 @@ export function toRotationSpeed(normalized: number): number {
  * Returns a value suitable for normalizing scene-specific movement.
  */
 export function fluxToMovement(flux: number): number {
-    return BASE_MOVEMENT_FACTOR + flux * SPEED.NORMAL
+  return BASE_MOVEMENT_FACTOR + flux * SPEED.NORMAL
 }

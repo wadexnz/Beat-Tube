@@ -1,4 +1,6 @@
-import type { WebGLRenderer } from "three";
+import type { WebGLRenderer } from 'three'
+import type { OnsetResult } from '../audio/OnsetResult'
+import type { IScene } from '../core/Scene'
 import {
   Clock,
   Color,
@@ -10,13 +12,11 @@ import {
   ShaderMaterial,
   SphereGeometry,
   Vector3,
-} from "three";
-import type { IScene } from "../core/Scene";
-import type { OnsetResult } from "../audio/OnsetResult";
+} from 'three'
 import {
   neonGridFragmentShader,
   neonGridVertexShader,
-} from "../shaders/neonGridShader";
+} from '../shaders/neonGridShader'
 
 // =============================================================================
 // Neon Grid Scene Constants
@@ -45,7 +45,7 @@ const GRID = {
   FLUX_SPEED_MULTIPLIER: 4000,
   /** Minimum time between color changes */
   COLOR_COOLDOWN: 0,
-} as const;
+} as const
 
 const SUN = {
   /** Sun radius */
@@ -58,7 +58,7 @@ const SUN = {
   DISTANCE: 1800,
   /** Height above grid — half submerged below horizon */
   HEIGHT: 40,
-} as const;
+} as const
 
 const LASERS = {
   /** Number of horizontal beams */
@@ -71,7 +71,7 @@ const LASERS = {
   DISTANCE: 1900,
   /** Vertical center offset */
   Y_OFFSET: 100,
-} as const;
+} as const
 
 const BUILDINGS = {
   /** Plane width */
@@ -84,7 +84,7 @@ const BUILDINGS = {
   Y_OFFSET: 140,
   /** Gap in center where sun is visible (fraction of width, 0–1) */
   CENTER_GAP: 0.25,
-} as const;
+} as const
 
 const SKY = {
   /** Backdrop plane width */
@@ -95,100 +95,100 @@ const SKY = {
   DISTANCE: 2200,
   /** Vertical offset */
   Y_OFFSET: 150,
-} as const;
+} as const
 
 // =============================================================================
 // Color Palettes — synthwave neon tones
 // =============================================================================
 
 const COLOR_PALETTES = [
-  { grid: new Color(0xff00ff), sun: new Color(0xff6600) }, // Magenta / Orange
-  { grid: new Color(0x00ffff), sun: new Color(0xff0066) }, // Cyan / Hot Pink
-  { grid: new Color(0xff3399), sun: new Color(0xffcc00) }, // Pink / Gold
-  { grid: new Color(0x6600ff), sun: new Color(0xff3300) }, // Purple / Red
-  { grid: new Color(0x00ff99), sun: new Color(0xff6633) }, // Mint / Tangerine
-];
+  { grid: new Color(0xFF00FF), sun: new Color(0xFF6600) }, // Magenta / Orange
+  { grid: new Color(0x00FFFF), sun: new Color(0xFF0066) }, // Cyan / Hot Pink
+  { grid: new Color(0xFF3399), sun: new Color(0xFFCC00) }, // Pink / Gold
+  { grid: new Color(0x6600FF), sun: new Color(0xFF3300) }, // Purple / Red
+  { grid: new Color(0x00FF99), sun: new Color(0xFF6633) }, // Mint / Tangerine
+]
 
 // =============================================================================
 // Neon Grid Scene
 // =============================================================================
 
 export class NeonGridScene implements IScene {
-  private renderer: WebGLRenderer;
-  private scene: Scene;
-  private camera: PerspectiveCamera;
-  private gridMesh: Mesh;
-  private gridMaterial: ShaderMaterial;
-  private sunMesh: Mesh;
-  private skyMesh: Mesh;
-  private skyMaterial: ShaderMaterial;
-  private laserMesh: Mesh;
-  private laserMaterial: ShaderMaterial;
-  private buildingsMesh: Mesh;
-  private buildingsMaterial: ShaderMaterial;
-  private colorClock: Clock;
+  private renderer: WebGLRenderer
+  private scene: Scene
+  private camera: PerspectiveCamera
+  private gridMesh: Mesh
+  private gridMaterial: ShaderMaterial
+  private sunMesh: Mesh
+  private skyMesh: Mesh
+  private skyMaterial: ShaderMaterial
+  private laserMesh: Mesh
+  private laserMaterial: ShaderMaterial
+  private buildingsMesh: Mesh
+  private buildingsMaterial: ShaderMaterial
+  private colorClock: Clock
 
-  private offset = 0;
-  private currentPaletteIndex = 0;
+  private offset = 0
+  private currentPaletteIndex = 0
 
   constructor(renderer: WebGLRenderer) {
-    this.renderer = renderer;
+    this.renderer = renderer
 
-    this.camera = this.buildCamera();
-    this.scene = new Scene();
-    this.scene.background = new Color(0x050008);
+    this.camera = this.buildCamera()
+    this.scene = new Scene()
+    this.scene.background = new Color(0x050008)
 
-    const { mesh, material } = this.buildGrid();
-    this.gridMesh = mesh;
-    this.gridMaterial = material;
-    this.scene.add(this.gridMesh);
+    const { mesh, material } = this.buildGrid()
+    this.gridMesh = mesh
+    this.gridMaterial = material
+    this.scene.add(this.gridMesh)
 
-    const { mesh: skyMesh, material: skyMat } = this.buildSky();
-    this.skyMesh = skyMesh;
-    this.skyMaterial = skyMat;
-    this.scene.add(this.skyMesh);
+    const { mesh: skyMesh, material: skyMat } = this.buildSky()
+    this.skyMesh = skyMesh
+    this.skyMaterial = skyMat
+    this.scene.add(this.skyMesh)
 
-    this.sunMesh = this.buildSun();
-    this.scene.add(this.sunMesh);
+    this.sunMesh = this.buildSun()
+    this.scene.add(this.sunMesh)
 
-    const { mesh: laserMesh, material: laserMat } = this.buildLasers();
-    this.laserMesh = laserMesh;
-    this.laserMaterial = laserMat;
-    this.scene.add(this.laserMesh);
+    const { mesh: laserMesh, material: laserMat } = this.buildLasers()
+    this.laserMesh = laserMesh
+    this.laserMaterial = laserMat
+    this.scene.add(this.laserMesh)
 
-    const { mesh: bldgMesh, material: bldgMat } = this.buildBuildings();
-    this.buildingsMesh = bldgMesh;
-    this.buildingsMaterial = bldgMat;
-    this.scene.add(this.buildingsMesh);
+    const { mesh: bldgMesh, material: bldgMat } = this.buildBuildings()
+    this.buildingsMesh = bldgMesh
+    this.buildingsMaterial = bldgMat
+    this.scene.add(this.buildingsMesh)
 
-    this.colorClock = new Clock();
+    this.colorClock = new Clock()
 
-    window.addEventListener("resize", () => this.resize());
+    window.addEventListener('resize', () => this.resize())
   }
 
   private buildCamera(): PerspectiveCamera {
-    const aspectRatio = window.innerWidth / window.innerHeight;
+    const aspectRatio = window.innerWidth / window.innerHeight
     const camera = new PerspectiveCamera(
       GRID.FOV,
       aspectRatio,
       GRID.NEAR,
-      GRID.FAR
-    );
-    camera.position.set(0, GRID.CAMERA_HEIGHT, 0);
-    camera.lookAt(new Vector3(0, 20, GRID.LOOK_AHEAD));
-    return camera;
+      GRID.FAR,
+    )
+    camera.position.set(0, GRID.CAMERA_HEIGHT, 0)
+    camera.lookAt(new Vector3(0, 20, GRID.LOOK_AHEAD))
+    return camera
   }
 
-  private buildGrid(): { mesh: Mesh; material: ShaderMaterial } {
+  private buildGrid(): { mesh: Mesh, material: ShaderMaterial } {
     const geometry = new PlaneGeometry(
       GRID.WIDTH,
       GRID.DEPTH,
       GRID.SEGMENTS,
-      GRID.SEGMENTS
-    );
-    geometry.rotateX(-Math.PI / 2);
+      GRID.SEGMENTS,
+    )
+    geometry.rotateX(-Math.PI / 2)
 
-    const palette = COLOR_PALETTES[0];
+    const palette = COLOR_PALETTES[0]
     const material = new ShaderMaterial({
       vertexShader: neonGridVertexShader,
       fragmentShader: neonGridFragmentShader,
@@ -198,20 +198,20 @@ export class NeonGridScene implements IScene {
         uOffset: { value: 0 },
         uGridColor: { value: palette.grid.clone() },
       },
-    });
+    })
 
-    const mesh = new Mesh(geometry, material);
-    mesh.position.set(0, 0, GRID.DEPTH * 0.5);
-    return { mesh, material };
+    const mesh = new Mesh(geometry, material)
+    mesh.position.set(0, 0, GRID.DEPTH * 0.5)
+    return { mesh, material }
   }
 
   private buildSun(): Mesh {
     const geometry = new SphereGeometry(
       SUN.RADIUS,
       SUN.WIDTH_SEGMENTS,
-      SUN.HEIGHT_SEGMENTS
-    );
-    const palette = COLOR_PALETTES[0];
+      SUN.HEIGHT_SEGMENTS,
+    )
+    const palette = COLOR_PALETTES[0]
     const material = new ShaderMaterial({
       vertexShader: /* glsl */ `
                 uniform float uFlux;
@@ -239,16 +239,16 @@ export class NeonGridScene implements IScene {
         uSunColor: { value: palette.sun.clone() },
         uFlux: { value: 0 },
       },
-    });
+    })
 
-    const mesh = new Mesh(geometry, material);
-    mesh.position.set(0, SUN.HEIGHT, SUN.DISTANCE);
-    return mesh;
+    const mesh = new Mesh(geometry, material)
+    mesh.position.set(0, SUN.HEIGHT, SUN.DISTANCE)
+    return mesh
   }
 
-  private buildSky(): { mesh: Mesh; material: ShaderMaterial } {
-    const geometry = new PlaneGeometry(SKY.WIDTH, SKY.HEIGHT);
-    const palette = COLOR_PALETTES[0];
+  private buildSky(): { mesh: Mesh, material: ShaderMaterial } {
+    const geometry = new PlaneGeometry(SKY.WIDTH, SKY.HEIGHT)
+    const palette = COLOR_PALETTES[0]
     const material = new ShaderMaterial({
       vertexShader: /* glsl */ `
                 varying vec2 vUv;
@@ -275,16 +275,16 @@ export class NeonGridScene implements IScene {
         uFlux: { value: 0 },
       },
       depthWrite: false,
-    });
+    })
 
-    const mesh = new Mesh(geometry, material);
-    mesh.position.set(0, SKY.Y_OFFSET, SKY.DISTANCE);
-    return { mesh, material };
+    const mesh = new Mesh(geometry, material)
+    mesh.position.set(0, SKY.Y_OFFSET, SKY.DISTANCE)
+    return { mesh, material }
   }
 
-  private buildBuildings(): { mesh: Mesh; material: ShaderMaterial } {
-    const geometry = new PlaneGeometry(BUILDINGS.WIDTH, BUILDINGS.HEIGHT);
-    const palette = COLOR_PALETTES[0];
+  private buildBuildings(): { mesh: Mesh, material: ShaderMaterial } {
+    const geometry = new PlaneGeometry(BUILDINGS.WIDTH, BUILDINGS.HEIGHT)
+    const palette = COLOR_PALETTES[0]
     const material = new ShaderMaterial({
       vertexShader: /* glsl */ `
                 varying vec2 vUv;
@@ -350,16 +350,16 @@ export class NeonGridScene implements IScene {
         uCenterGap: { value: BUILDINGS.CENTER_GAP },
       },
       side: DoubleSide,
-    });
+    })
 
-    const mesh = new Mesh(geometry, material);
-    mesh.position.set(0, BUILDINGS.Y_OFFSET, BUILDINGS.DISTANCE);
-    return { mesh, material };
+    const mesh = new Mesh(geometry, material)
+    mesh.position.set(0, BUILDINGS.Y_OFFSET, BUILDINGS.DISTANCE)
+    return { mesh, material }
   }
 
-  private buildLasers(): { mesh: Mesh; material: ShaderMaterial } {
-    const geometry = new PlaneGeometry(LASERS.WIDTH, LASERS.HEIGHT);
-    const palette = COLOR_PALETTES[0];
+  private buildLasers(): { mesh: Mesh, material: ShaderMaterial } {
+    const geometry = new PlaneGeometry(LASERS.WIDTH, LASERS.HEIGHT)
+    const palette = COLOR_PALETTES[0]
     const material = new ShaderMaterial({
       vertexShader: /* glsl */ `
                 varying vec2 vUv;
@@ -401,68 +401,68 @@ export class NeonGridScene implements IScene {
       transparent: true,
       depthWrite: false,
       side: DoubleSide,
-    });
+    })
 
-    const mesh = new Mesh(geometry, material);
-    mesh.position.set(0, LASERS.Y_OFFSET, LASERS.DISTANCE);
-    return { mesh, material };
+    const mesh = new Mesh(geometry, material)
+    mesh.position.set(0, LASERS.Y_OFFSET, LASERS.DISTANCE)
+    return { mesh, material }
   }
 
   update(deltaTime: number, audio: OnsetResult): void {
     // Scroll grid toward camera, speed driven by flux
-    const scrollSpeed =
-      GRID.BASE_SPEED + audio.flux * GRID.FLUX_SPEED_MULTIPLIER;
-    this.offset += scrollSpeed * deltaTime;
+    const scrollSpeed
+      = GRID.BASE_SPEED + audio.flux * GRID.FLUX_SPEED_MULTIPLIER
+    this.offset += scrollSpeed * deltaTime
 
     // Update shader uniforms
-    this.gridMaterial.uniforms.uFlux.value = audio.flux;
-    this.gridMaterial.uniforms.uOffset.value = this.offset;
+    this.gridMaterial.uniforms.uFlux.value = audio.flux
+    this.gridMaterial.uniforms.uOffset.value = this.offset
 
     // Update sun, sky, and laser flux
-    const sunMaterial = this.sunMesh.material as ShaderMaterial;
-    sunMaterial.uniforms.uFlux.value = audio.flux;
-    this.skyMaterial.uniforms.uFlux.value = audio.flux;
-    this.laserMaterial.uniforms.uFlux.value = audio.flux;
-    this.buildingsMaterial.uniforms.uFlux.value = audio.flux;
+    const sunMaterial = this.sunMesh.material as ShaderMaterial
+    sunMaterial.uniforms.uFlux.value = audio.flux
+    this.skyMaterial.uniforms.uFlux.value = audio.flux
+    this.laserMaterial.uniforms.uFlux.value = audio.flux
+    this.buildingsMaterial.uniforms.uFlux.value = audio.flux
 
     // Handle beat events — instant color swap
     if (audio.event && this.colorClock.getElapsedTime() > GRID.COLOR_COOLDOWN) {
-      this.colorClock = new Clock();
+      this.colorClock = new Clock()
 
-      this.currentPaletteIndex =
-        (this.currentPaletteIndex + 1) % COLOR_PALETTES.length;
-      const palette = COLOR_PALETTES[this.currentPaletteIndex];
+      this.currentPaletteIndex
+        = (this.currentPaletteIndex + 1) % COLOR_PALETTES.length
+      const palette = COLOR_PALETTES[this.currentPaletteIndex]
 
-      this.gridMaterial.uniforms.uGridColor.value.copy(palette.grid);
-      const sunMat = this.sunMesh.material as ShaderMaterial;
-      sunMat.uniforms.uSunColor.value.copy(palette.sun);
-      this.skyMaterial.uniforms.uGlowColor.value.copy(palette.sun);
-      this.laserMaterial.uniforms.uLaserColor.value.copy(palette.grid);
-      this.buildingsMaterial.uniforms.uEdgeColor.value.copy(palette.grid);
+      this.gridMaterial.uniforms.uGridColor.value.copy(palette.grid)
+      const sunMat = this.sunMesh.material as ShaderMaterial
+      sunMat.uniforms.uSunColor.value.copy(palette.sun)
+      this.skyMaterial.uniforms.uGlowColor.value.copy(palette.sun)
+      this.laserMaterial.uniforms.uLaserColor.value.copy(palette.grid)
+      this.buildingsMaterial.uniforms.uEdgeColor.value.copy(palette.grid)
     }
   }
 
   render(): void {
-    this.renderer.render(this.scene, this.camera);
+    this.renderer.render(this.scene, this.camera)
   }
 
   resize(): void {
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix();
-    this.render();
+    this.renderer.setSize(window.innerWidth, window.innerHeight)
+    this.camera.aspect = window.innerWidth / window.innerHeight
+    this.camera.updateProjectionMatrix()
+    this.render()
   }
 
   dispose(): void {
-    this.gridMesh.geometry.dispose();
-    this.gridMaterial.dispose();
+    this.gridMesh.geometry.dispose()
+    this.gridMaterial.dispose()
     this.sunMesh.geometry.dispose();
-    (this.sunMesh.material as ShaderMaterial).dispose();
-    this.skyMesh.geometry.dispose();
-    this.skyMaterial.dispose();
-    this.laserMesh.geometry.dispose();
-    this.laserMaterial.dispose();
-    this.buildingsMesh.geometry.dispose();
-    this.buildingsMaterial.dispose();
+    (this.sunMesh.material as ShaderMaterial).dispose()
+    this.skyMesh.geometry.dispose()
+    this.skyMaterial.dispose()
+    this.laserMesh.geometry.dispose()
+    this.laserMaterial.dispose()
+    this.buildingsMesh.geometry.dispose()
+    this.buildingsMaterial.dispose()
   }
 }

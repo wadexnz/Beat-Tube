@@ -6,17 +6,17 @@ import type { OnsetResult } from '../audio/OnsetResult'
  * Provides a consistent contract for the SceneManager.
  */
 export interface IScene {
-    /** Update scene state based on time and audio analysis */
-    update(deltaTime: number, audio: OnsetResult): void
+  /** Update scene state based on time and audio analysis */
+  update: (deltaTime: number, audio: OnsetResult) => void
 
-    /** Render the scene to the WebGL context */
-    render(): void
+  /** Render the scene to the WebGL context */
+  render: () => void
 
-    /** Handle window resize events */
-    resize(): void
+  /** Handle window resize events */
+  resize: () => void
 
-    /** Clean up resources when scene is disposed */
-    dispose(): void
+  /** Clean up resources when scene is disposed */
+  dispose: () => void
 }
 
 /**
@@ -24,17 +24,17 @@ export interface IScene {
  * Scenes can extend this or implement IScene directly.
  */
 export abstract class BaseScene implements IScene {
-    protected renderer: WebGLRenderer
+  protected renderer: WebGLRenderer
 
-    constructor(renderer: WebGLRenderer) {
-        this.renderer = renderer
-    }
+  constructor(renderer: WebGLRenderer) {
+    this.renderer = renderer
+  }
 
-    abstract update(deltaTime: number, audio: OnsetResult): void
-    abstract render(): void
-    abstract resize(): void
+  abstract update(deltaTime: number, audio: OnsetResult): void
+  abstract render(): void
+  abstract resize(): void
 
-    dispose(): void {
-        // Override in subclasses if cleanup is needed
-    }
+  dispose(): void {
+    // Override in subclasses if cleanup is needed
+  }
 }
