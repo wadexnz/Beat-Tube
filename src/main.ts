@@ -8,6 +8,7 @@ import { NeonGridScene } from './scenes/NeonGridScene'
 import { PrismBloomScene } from './scenes/PrismBloomScene'
 import { TerrainScene } from './scenes/TerrainScene'
 import { TunnelScene } from './scenes/TunnelScene'
+import { ZikrScene } from './scenes/ZikrScene'
 import shareFile from './ui/FileShare'
 import previewFile from './ui/PreviewShare'
 import sceneNav from './ui/SceneNav'
@@ -32,6 +33,7 @@ sceneManager.register(new PrismBloomScene(renderer))
 sceneManager.register(new NeonGridScene(renderer))
 sceneManager.register(new TerrainScene(renderer))
 sceneManager.register(new TunnelScene(renderer))
+sceneManager.register(new ZikrScene(renderer))
 // sceneManager.register(new CubeScene(renderer))
 
 // Render initial scene
