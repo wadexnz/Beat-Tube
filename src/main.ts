@@ -5,6 +5,7 @@ import { VRButton } from 'three/examples/jsm/webxr/VRButton.js'
 import { OnsetByAverage } from './audio/OnsetByAverage'
 import { SceneManager } from './core/SceneManager'
 import { NeonGridScene } from './scenes/NeonGridScene'
+import { PrismBloomScene } from './scenes/PrismBloomScene'
 import { TerrainScene } from './scenes/TerrainScene'
 import { TunnelScene } from './scenes/TunnelScene'
 import shareFile from './ui/FileShare'
@@ -27,6 +28,7 @@ overlay.prepend(VRButton.createButton(renderer))
 
 // Initialize SceneManager and register scenes
 const sceneManager = new SceneManager(renderer)
+sceneManager.register(new PrismBloomScene(renderer))
 sceneManager.register(new NeonGridScene(renderer))
 sceneManager.register(new TerrainScene(renderer))
 sceneManager.register(new TunnelScene(renderer))
