@@ -55,25 +55,41 @@ const ZIKR = {
   /** Camera orbit speed multiplier for flux */
   CAMERA_FLUX_ORBIT: 0.1,
   /** Base ring rotation speed when quiet (radians/sec) - a slow procession */
-  BASE_ANGULAR_SPEED: 0.12,
+  BASE_ANGULAR_SPEED: 0.1,
   /** Ring rotation speed multiplier for flux - builds to a run */
-  FLUX_ANGULAR_SPEED: 2.6,
-  /** Minimum time between rotation direction reversals */
-  DIRECTION_COOLDOWN: 2.5,
+  FLUX_ANGULAR_SPEED: 4.2,
+  /** How fast motion glides between run and sway phases (per second) */
+  MOTION_EASE_RATE: 0.7,
+  /** Minimum seconds running before the circle may slow into a sway phase */
+  RUN_PHASE_MIN: 7,
+  /** Minimum seconds swaying before the circle may run again */
+  SWAY_PHASE_MIN: 3.5,
   /** Minimum time between color changes */
-  COLOR_COOLDOWN: 0.15,
-  /** Base stomp cadence (radians/sec of phase) */
-  STOMP_BASE_SPEED: 3.0,
-  /** Stomp cadence multiplier for flux */
-  STOMP_FLUX_SPEED: 16.0,
-  /** Vertical hop distance at flux 1.0 (world units) */
-  STOMP_AMPLITUDE: 0.55,
+  COLOR_COOLDOWN: 0.3,
+  /** Base bob cadence (radians/sec of phase) */
+  STOMP_BASE_SPEED: 2.2,
+  /** Bob cadence multiplier for flux */
+  STOMP_FLUX_SPEED: 10.0,
+  /** Vertical bob distance at flux 1.0 (world units) */
+  STOMP_AMPLITUDE: 1.1,
+  /** Bob wave crests traveling around each ring */
+  BOB_WAVE_NUMBER: 3,
+  /** Base side-to-side sway cadence (radians/sec of phase) */
+  SWAY_BASE_SPEED: 1.5,
+  /** Sway cadence multiplier for flux */
+  SWAY_FLUX_SPEED: 5.0,
+  /** Torso roll while running (radians per unit of flux) */
+  SWAY_ROLL_RUN: 0.35,
+  /** Extra torso roll when standing still (radians per unit of flux) */
+  SWAY_ROLL_STILL: 1.5,
+  /** Maximum torso roll (radians) */
+  SWAY_ROLL_MAX: 0.45,
+  /** Lateral weight-shift when standing still (world units per unit of flux) */
+  SWAY_SHIFT: 0.9,
   /** Forward running lean per unit of flux (radians) */
   LEAN_FACTOR: 1.2,
   /** Maximum forward lean (radians) */
-  LEAN_MAX: 0.3,
-  /** Side-to-side sway per unit of flux (radians) */
-  SWAY_FACTOR: 0.5,
+  LEAN_MAX: 0.35,
   /** World height where figures fully emerge from the mist */
   MIST_TOP: 1.0,
   /** Base mist drift speed */
@@ -89,9 +105,17 @@ const ZIKR = {
 /** Concentric rings: elders inner (larger, steadier), young men outer (faster) */
 const RINGS = [
   { radius: 4.5, count: 12, scale: 1.12, speedFactor: 0.85 },
-  { radius: 7.4, count: 20, scale: 1.0, speedFactor: 1.0 },
-  { radius: 10.3, count: 28, scale: 0.92, speedFactor: 1.15 },
+  { radius: 7.4, count: 20, scale: 1.0, speedFactor: 1.05 },
+  { radius: 10.3, count: 28, scale: 0.92, speedFactor: 1.25 },
 ] as const
+
+/**
+ * The ritual's cycle: run counterclockwise, glide to a swaying standstill,
+ * run clockwise, sway again. Beat events advance to the next phase once the
+ * minimum phase time has passed; `motion` eases toward the target so the
+ * circle visibly decelerates, halts, and accelerates the other way.
+ */
+const PHASE_TARGETS = [-1, 0, 1, 0] as const
 
 /** Upper-body profile revolved into a figure: waist, chest, shoulders, head, papakha hat */
 const FIGURE_PROFILE: ReadonlyArray<readonly [number, number]> = [
@@ -128,7 +152,7 @@ const COLOR_PALETTES = [
 interface FigureData {
   ring: number
   baseAngle: number
-  phaseOffset: number
+  jitter: number
   sizeJitter: number
 }
 
@@ -149,12 +173,14 @@ export class ZikrScene implements IScene {
   private groundMesh: Mesh
 
   private ringAngles = RINGS.map(() => 0)
-  private direction = -1 // counterclockwise, as the ritual begins
+  private phaseIndex = 0
+  private motion = PHASE_TARGETS[0] as number // eases toward the phase target
   private stompPhase = 0
+  private swayPhase = 0
   private cameraAngle = 0
   private mistDrift = 0
   private currentPaletteIndex = 0
-  private directionClock: Clock
+  private phaseClock: Clock
   private colorClock: Clock
 
   constructor(renderer: WebGLRenderer) {
@@ -178,7 +204,7 @@ export class ZikrScene implements IScene {
 
     this.buildMist()
 
-    this.directionClock = new Clock()
+    this.phaseClock = new Clock()
     this.colorClock = new Clock()
 
     this.updateFigures(0)
@@ -221,7 +247,7 @@ export class ZikrScene implements IScene {
         this.figureData.push({
           ring,
           baseAngle: (i / RINGS[ring].count) * Math.PI * 2,
-          phaseOffset: Math.random() * Math.PI * 2,
+          jitter: Math.random() * Math.PI * 2,
           sizeJitter: 0.94 + Math.random() * 0.12,
         })
       }
@@ -292,7 +318,10 @@ export class ZikrScene implements IScene {
   }
 
   private updateFigures(flux: number): void {
-    const lean = Math.min(flux * ZIKR.LEAN_FACTOR, ZIKR.LEAN_MAX)
+    // drive = 1 while running, 0 while standing; stillness is its complement
+    const drive = Math.abs(this.motion)
+    const stillness = 1 - drive
+    const lean = Math.min(flux * ZIKR.LEAN_FACTOR, ZIKR.LEAN_MAX) * drive
     this.dummy.rotation.order = 'YXZ'
 
     for (let i = 0; i < this.figureData.length; i++) {
@@ -300,22 +329,29 @@ export class ZikrScene implements IScene {
       const ring = RINGS[figure.ring]
       const angle = figure.baseAngle + this.ringAngles[figure.ring]
 
-      const hop = flux * ZIKR.STOMP_AMPLITUDE
-        * Math.abs(Math.sin(this.stompPhase + figure.phaseOffset))
-      const sway = flux * ZIKR.SWAY_FACTOR
-        * Math.sin(this.stompPhase * 0.5 + figure.phaseOffset)
+      // Smooth swooping bob, traveling as a wave around each ring
+      const bobPhase = this.stompPhase
+        + figure.baseAngle * ZIKR.BOB_WAVE_NUMBER + figure.jitter * 0.5
+      const bob = flux * ZIKR.STOMP_AMPLITUDE
+        * (0.5 + 0.5 * Math.sin(bobPhase))
+        * (0.45 + 0.55 * drive)
+
+      // Side-to-side sway, near-unison, strongest when standing still
+      const swayWave = Math.sin(this.swayPhase + figure.jitter * 0.3)
+      const rollAmount = flux * (ZIKR.SWAY_ROLL_RUN + ZIKR.SWAY_ROLL_STILL * stillness)
+      const roll = swayWave * Math.min(rollAmount, ZIKR.SWAY_ROLL_MAX)
+      const shift = swayWave * flux * ZIKR.SWAY_SHIFT * stillness
+
+      // Face travel direction while running, turn toward the center when still
+      const yaw = Math.atan2(-Math.cos(angle), -Math.sin(angle))
+        + this.motion * Math.PI * 0.5
 
       this.dummy.position.set(
-        Math.cos(angle) * ring.radius,
-        hop,
-        Math.sin(angle) * ring.radius,
+        Math.cos(angle) * ring.radius + Math.cos(yaw) * shift,
+        bob,
+        Math.sin(angle) * ring.radius - Math.sin(yaw) * shift,
       )
-      // Face the direction of travel around the ring
-      this.dummy.rotation.set(
-        lean,
-        Math.atan2(-Math.sin(angle) * this.direction, Math.cos(angle) * this.direction),
-        sway,
-      )
+      this.dummy.rotation.set(lean, yaw, roll)
       const size = ring.scale * figure.sizeJitter
       this.dummy.scale.set(size * 1.35, size, size * 0.8)
       this.dummy.updateMatrix()
@@ -329,20 +365,28 @@ export class ZikrScene implements IScene {
     // Clamp deltaTime to prevent massive jumps when returning from background tab
     const delta = Math.min(deltaTime, 0.1)
 
+    // Motion glides toward the current phase target: the circle decelerates,
+    // stands swaying, then accelerates the other way
+    const target = PHASE_TARGETS[this.phaseIndex]
+    const maxStep = ZIKR.MOTION_EASE_RATE * delta
+    this.motion += Math.max(-maxStep, Math.min(maxStep, target - this.motion))
+
     // The circles walk, jog, and run with the music's intensity
     const angularSpeed = ZIKR.BASE_ANGULAR_SPEED + audio.flux * ZIKR.FLUX_ANGULAR_SPEED
     for (let ring = 0; ring < RINGS.length; ring++)
-      this.ringAngles[ring] += angularSpeed * RINGS[ring].speedFactor * this.direction * delta
+      this.ringAngles[ring] += angularSpeed * RINGS[ring].speedFactor * this.motion * delta
 
     this.stompPhase += (ZIKR.STOMP_BASE_SPEED + audio.flux * ZIKR.STOMP_FLUX_SPEED) * delta
+    this.swayPhase += (ZIKR.SWAY_BASE_SPEED + audio.flux * ZIKR.SWAY_FLUX_SPEED) * delta
     this.cameraAngle += (ZIKR.CAMERA_BASE_ORBIT + audio.flux * ZIKR.CAMERA_FLUX_ORBIT) * delta
     this.mistDrift += (ZIKR.MIST_DRIFT_BASE + audio.flux * ZIKR.MIST_DRIFT_FLUX) * delta
 
     if (audio.event) {
-      // The circle halts and reverses - the ritual's stop-and-turn
-      if (this.directionClock.getElapsedTime() > ZIKR.DIRECTION_COOLDOWN) {
-        this.directionClock = new Clock()
-        this.direction *= -1
+      // Advance the ritual's cycle: run, sway in place, run the other way
+      const phaseMin = target === 0 ? ZIKR.SWAY_PHASE_MIN : ZIKR.RUN_PHASE_MIN
+      if (this.phaseClock.getElapsedTime() > phaseMin) {
+        this.phaseClock = new Clock()
+        this.phaseIndex = (this.phaseIndex + 1) % PHASE_TARGETS.length
       }
       if (this.colorClock.getElapsedTime() > ZIKR.COLOR_COOLDOWN) {
         this.colorClock = new Clock()
