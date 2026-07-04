@@ -2,11 +2,11 @@
   "name": "acid-o",
   "version": "0.0.1",
   "scripts": {
-    "dev": "vite --host",
-    "build": "vite build",
-    "serve": "vite preview",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "dev": "bun --bun vite --host",
+    "build": "bun --bun vite build",
+    "serve": "bun --bun vite preview",
+    "lint": "bun --bun eslint .",
+    "lint:fix": "bun --bun eslint . --fix"
   },
   "dependencies": {
     "three": "^0.184.0"

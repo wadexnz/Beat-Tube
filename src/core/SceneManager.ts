@@ -59,7 +59,6 @@ export class SceneManager {
     if (index === this.currentIndex)
       return
 
-    this.current?.dispose()
     this.currentIndex = index
     this.current?.resize()
     this.onSceneChange?.(index, this.scenes.length)
