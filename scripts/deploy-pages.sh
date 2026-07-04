@@ -2,12 +2,14 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REMOTE="${DEPLOY_REMOTE:-origin}"
-DEPLOY_BRANCH="${DEPLOY_BRANCH:-gh-pages}"
+
+# Canonical site lives at https://wadexnz.github.io/ (the user Pages repo).
+DEPLOY_REPO="${DEPLOY_REPO:-https://github.com/wadexnz/wadexnz.github.io.git}"
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
 DEPLOY_DIR="$(mktemp -d)"
 
 cleanup() {
-  git -C "$PROJECT_ROOT" worktree remove --force "$DEPLOY_DIR" >/dev/null 2>&1 || rm -rf "$DEPLOY_DIR"
+  rm -rf "$DEPLOY_DIR"
 }
 trap cleanup EXIT
 
@@ -20,10 +22,9 @@ fi
 cd "$PROJECT_ROOT"
 bun run build
 
-git fetch "$REMOTE" "$DEPLOY_BRANCH"
-git worktree add --detach "$DEPLOY_DIR" FETCH_HEAD >/dev/null
-git -C "$DEPLOY_DIR" switch -C "$DEPLOY_BRANCH" >/dev/null
+git clone --branch "$DEPLOY_BRANCH" --single-branch "$DEPLOY_REPO" "$DEPLOY_DIR"
 
+# Replace everything except the .git dir with the fresh build.
 find "$DEPLOY_DIR" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 cp -a "$PROJECT_ROOT/dist/." "$DEPLOY_DIR/"
 touch "$DEPLOY_DIR/.nojekyll"
@@ -35,8 +36,8 @@ if git -C "$DEPLOY_DIR" diff --cached --quiet; then
   exit 0
 fi
 
-git -C "$DEPLOY_DIR" commit -m "Deploy GitHub Pages"
-git -C "$DEPLOY_DIR" push "$REMOTE" "$DEPLOY_BRANCH"
+git -C "$DEPLOY_DIR" commit -m "Deploy Beat-Tube"
+git -C "$DEPLOY_DIR" push origin "$DEPLOY_BRANCH"
 
 echo
-echo "Published GitHub Pages from $DEPLOY_BRANCH."
+echo "Published to $DEPLOY_REPO ($DEPLOY_BRANCH) -> https://wadexnz.github.io/"
