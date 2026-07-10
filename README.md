@@ -8,18 +8,18 @@ Music visualiser built with three js and vite
 
 ## Deploy to GitHub Pages
 
-The live site is served from this repository's `gh-pages` branch:
+The canonical site is served from the user Pages repository:
 
-https://wadexnz.github.io/Beat-Tube/
+https://wadexnz.github.io/
 
-Build Beat Tube and publish the generated Vite output to `gh-pages`:
+Build Beat Tube and publish the generated Vite output:
 
 ```sh
 bun run deploy:pages
 ```
 
-The deploy script builds locally, copies `dist/` into a temporary worktree, commits it to `gh-pages`, and pushes the branch. To deploy to a different remote or branch:
+The deploy script builds locally, clones `wadexnz/wadexnz.github.io`, copies `dist/` into a temporary worktree, commits it to `master`, and pushes the branch. To deploy to a different repository or branch:
 
 ```sh
-DEPLOY_REMOTE=origin DEPLOY_BRANCH=gh-pages bun run deploy:pages
+DEPLOY_REPO=https://github.com/wadexnz/beat-tube.git DEPLOY_BRANCH=gh-pages bun run deploy:pages
 ```
