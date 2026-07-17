@@ -11,7 +11,7 @@
 
 export const TRACK_MATH = {
   /** Track ribbon width (3 lanes) */
-  WIDTH: 390,
+  WIDTH: 660,
   /** Track ribbon depth (length ahead of camera) */
   DEPTH: 4200,
   /** Hill wave 1: frequency and amplitude */

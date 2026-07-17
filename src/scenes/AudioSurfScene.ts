@@ -5,6 +5,7 @@ import {
   BoxGeometry,
   Color,
   ConeGeometry,
+  Group,
   InstancedMesh,
   Mesh,
   MeshBasicMaterial,
@@ -13,6 +14,7 @@ import {
   PlaneGeometry,
   Scene,
   ShaderMaterial,
+  SphereGeometry,
   Vector3,
 } from 'three'
 import {
@@ -29,13 +31,13 @@ import {
 
 const VIEW = {
   /** Camera field of view */
-  FOV: 70,
+  FOV: 72,
   /** Camera near plane */
   NEAR: 1,
   /** Camera far plane */
   FAR: 9000,
   /** Base camera height above the track */
-  CAMERA_HEIGHT: 110,
+  CAMERA_HEIGHT: 82,
   /** How much the camera follows the ship's height (0-1) */
   CAMERA_FOLLOW: 0.5,
   /** Camera look-ahead distance */
@@ -46,39 +48,41 @@ const VIEW = {
 
 const MOTION = {
   /** Base scroll speed when no audio is playing */
-  BASE_SPEED: 120,
+  BASE_SPEED: 520,
   /** Scroll speed multiplier for audio flux */
-  FLUX_SPEED_MULTIPLIER: 2600,
+  FLUX_SPEED_MULTIPLIER: 3600,
   /** Scale applied to meanFlux to derive 0-1 energy for color blending */
   ENERGY_SCALE: 3.5,
 } as const
 
 const SHIP = {
   /** Distance ahead of the camera */
-  Z: 260,
+  Z: 220,
   /** Hover height above the track surface */
-  HOVER: 16,
+  HOVER: 18,
   /** Body radius */
-  RADIUS: 15,
+  RADIUS: 13,
   /** Body length */
-  LENGTH: 40,
+  LENGTH: 58,
 } as const
 
 const BLOCKS = {
   /** Instanced mesh pool size */
-  MAX: 48,
+  MAX: 72,
   /** Box edge length */
-  SIZE: 28,
+  SIZE: 44,
   /** Hover height above the track surface */
   HOVER: 20,
   /** Spawn distance ahead of the camera */
-  SPAWN_Z: 3600,
+  SPAWN_Z: 2800,
   /** Distance over which blocks scale in after spawning */
-  SPAWN_FADE: 500,
+  SPAWN_FADE: 180,
   /** Despawn distance (behind the ship) */
   KILL_Z: -80,
   /** Flux threshold above which a beat spawns two blocks */
   DOUBLE_SPAWN_FLUX: 0.25,
+  /** Traffic visible before the first beat arrives */
+  INITIAL_COUNT: 18,
   /** Base spin speed (radians/sec) */
   BASE_SPIN: 0.3,
   /** Spin speed multiplier for audio flux */
@@ -102,6 +106,8 @@ const COLORS = {
   CALM_SKY: new Color(0x1133AA),
   HOT_SKY: new Color(0xDD2244),
   SHIP: new Color(0xEEF6FF),
+  SHIP_ACCENT: new Color(0x00DDFF),
+  SHIP_CANOPY: new Color(0x2255FF),
 } as const
 
 /** Block color ramp indexed by flux at spawn time (calm to intense) */
@@ -139,8 +145,8 @@ export class AudioSurfScene implements IScene {
   private trackMaterial: ShaderMaterial
   private skyMesh: Mesh
   private skyMaterial: ShaderMaterial
-  private shipMesh: Mesh
-  private shipMaterial: MeshBasicMaterial
+  private shipMesh: Group
+  private shipMaterials: MeshBasicMaterial[]
   private blocksMesh: InstancedMesh
   private blockMaterial: MeshBasicMaterial
   private blockStates: BlockState[]
@@ -169,7 +175,7 @@ export class AudioSurfScene implements IScene {
 
     const { mesh: shipMesh, material: shipMat } = this.buildShip()
     this.shipMesh = shipMesh
-    this.shipMaterial = shipMat
+    this.shipMaterials = shipMat
     this.scene.add(this.shipMesh)
 
     const { mesh: blocksMesh, material: blockMat, states } = this.buildBlocks()
@@ -177,6 +183,7 @@ export class AudioSurfScene implements IScene {
     this.blockMaterial = blockMat
     this.blockStates = states
     this.scene.add(this.blocksMesh)
+    this.seedBlocks()
 
     window.addEventListener('resize', () => this.resize())
   }
@@ -257,16 +264,38 @@ export class AudioSurfScene implements IScene {
     return { mesh, material }
   }
 
-  private buildShip(): { mesh: Mesh, material: MeshBasicMaterial } {
-    const geometry = new ConeGeometry(SHIP.RADIUS, SHIP.LENGTH, 4)
-    // Point the nose down the track (+z), flatten into a wedge
-    geometry.rotateX(Math.PI / 2)
-    geometry.rotateZ(Math.PI / 4)
-    geometry.scale(1.6, 0.5, 1)
+  private buildShip(): { mesh: Group, material: MeshBasicMaterial[] } {
+    const hullMaterial = new MeshBasicMaterial({ color: COLORS.SHIP })
+    const accentMaterial = new MeshBasicMaterial({ color: COLORS.SHIP_ACCENT })
+    const canopyMaterial = new MeshBasicMaterial({ color: COLORS.SHIP_CANOPY })
+    const ship = new Group()
 
-    const material = new MeshBasicMaterial({ color: COLORS.SHIP })
-    const mesh = new Mesh(geometry, material)
-    return { mesh, material }
+    const hullGeometry = new ConeGeometry(SHIP.RADIUS, SHIP.LENGTH, 6)
+    hullGeometry.rotateX(Math.PI / 2)
+    const hull = new Mesh(hullGeometry, hullMaterial)
+    hull.scale.set(1.15, 0.55, 1)
+    ship.add(hull)
+
+    const wings = new Mesh(new BoxGeometry(72, 5, 25), hullMaterial)
+    wings.position.set(0, -4, -8)
+    ship.add(wings)
+
+    const canopy = new Mesh(new SphereGeometry(10, 12, 6), canopyMaterial)
+    canopy.scale.set(0.75, 0.45, 1.35)
+    canopy.position.set(0, 5, 7)
+    ship.add(canopy)
+
+    const thrusterGeometry = new BoxGeometry(13, 8, 10)
+    for (const x of [-25, 25]) {
+      const thruster = new Mesh(thrusterGeometry, accentMaterial)
+      thruster.position.set(x, -2, -20)
+      ship.add(thruster)
+    }
+
+    return {
+      mesh: ship,
+      material: [hullMaterial, accentMaterial, canopyMaterial],
+    }
   }
 
   private buildBlocks(): {
@@ -290,6 +319,21 @@ export class AudioSurfScene implements IScene {
     mesh.instanceMatrix.needsUpdate = true
 
     return { mesh, material, states }
+  }
+
+  /** Fill the road immediately so the scene never opens on an empty horizon. */
+  private seedBlocks(): void {
+    for (let i = 0; i < BLOCKS.INITIAL_COUNT; i++) {
+      const block = this.blockStates[i]
+      block.active = true
+      block.lane = i % LANE_COUNT
+      block.z = 480 + i * 135
+      block.angle = (i % 4) * Math.PI / 4
+      this.blocksMesh.setColorAt(i, BLOCK_RAMP[i % BLOCK_RAMP.length])
+    }
+    if (this.blocksMesh.instanceColor)
+      this.blocksMesh.instanceColor.needsUpdate = true
+    this.updateBlocks(0, 0)
   }
 
   /** X-position of a lane center (lane 0-2) */
@@ -359,7 +403,7 @@ export class AudioSurfScene implements IScene {
           block.z,
         )
         this.dummy.rotation.set(0, block.angle, 0)
-        this.dummy.scale.setScalar(scaleIn)
+        this.dummy.scale.set(scaleIn, scaleIn * 1.35, scaleIn)
       }
       this.dummy.updateMatrix()
       this.blocksMesh.setMatrixAt(i, this.dummy.matrix)
@@ -428,8 +472,12 @@ export class AudioSurfScene implements IScene {
     this.trackMaterial.dispose()
     this.skyMesh.geometry.dispose()
     this.skyMaterial.dispose()
-    this.shipMesh.geometry.dispose()
-    this.shipMaterial.dispose()
+    this.shipMesh.traverse((child) => {
+      if (child instanceof Mesh)
+        child.geometry.dispose()
+    })
+    for (const material of this.shipMaterials)
+      material.dispose()
     this.blocksMesh.geometry.dispose()
     this.blockMaterial.dispose()
     this.blocksMesh.dispose()
