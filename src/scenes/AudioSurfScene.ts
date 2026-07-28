@@ -73,6 +73,18 @@ const SHIP = {
   RADIUS: 13,
   /** Body length */
   LENGTH: 58,
+  /** Side-to-side wave frequency along the scrolling track */
+  SWAY_FREQUENCY: 0.0022,
+  /** Gentle movement when audio is quiet */
+  BASE_SWAY: 38,
+  /** Additional side-to-side range driven directly by flux */
+  FLUX_SWAY: 260,
+  /** Fraction of the ship's sway followed by the chase camera */
+  CAMERA_SWAY_FOLLOW: 0.25,
+  /** Base banking angle during a turn */
+  BASE_BANK: 0.08,
+  /** Additional banking driven directly by flux */
+  FLUX_BANK: 0.45,
 } as const
 
 const BLOCKS = {
@@ -175,7 +187,6 @@ export class AudioSurfScene implements IScene {
 
   private offset = 0
   private flux = 0
-  private shipLane = 1
 
   constructor(renderer: WebGLRenderer) {
     this.renderer = renderer
@@ -457,12 +468,6 @@ export class AudioSurfScene implements IScene {
       this.blocksMesh.instanceColor.needsUpdate = true
   }
 
-  /** Hop the ship to a random different lane — instant beat response */
-  private hopLane(): void {
-    const shift = 1 + Math.floor(Math.random() * (LANE_COUNT - 1))
-    this.shipLane = (this.shipLane + shift) % LANE_COUNT
-  }
-
   private updateBlocks(deltaTime: number, scrollSpeed: number): void {
     const spin = BLOCKS.BASE_SPIN + this.flux * BLOCKS.FLUX_SPIN_MULTIPLIER
 
@@ -526,27 +531,32 @@ export class AudioSurfScene implements IScene {
     this.blockMaterial.color.setScalar(0.75 + audio.flux * 0.8)
 
     // Beat events — instant, stateless changes
-    if (audio.event) {
+    if (audio.event)
       this.spawnBlocks(audio.flux)
-      this.hopLane()
-    }
 
-    // Ship rides the track surface at its lane
+    // Smooth weaving and banking are direct functions of the current flux and
+    // track offset; beat events never start a multi-frame animation.
+    const swayPhase = this.offset * SHIP.SWAY_FREQUENCY
+    const swayAmplitude = SHIP.BASE_SWAY + audio.flux * SHIP.FLUX_SWAY
+    const sway = Math.sin(swayPhase) * swayAmplitude
     const shipY = trackHeight(SHIP.Z, this.offset, this.flux) + SHIP.HOVER
-    const shipX = this.laneX(this.shipLane) + trackBend(SHIP.Z, this.offset)
+    const roadAtShipX = trackBend(SHIP.Z, this.offset)
+    const shipX = roadAtShipX + sway
     this.shipMesh.position.set(
       shipX,
       shipY,
       SHIP.Z,
     )
+    this.shipMesh.rotation.z = -Math.cos(swayPhase)
+      * (SHIP.BASE_BANK + audio.flux * SHIP.FLUX_BANK)
 
-    // Chase from the active lane so instant lane changes never push the ship
-    // out of frame. The distant look target follows the road's current bend.
-    this.camera.position.x = shipX
+    // Follow only part of the weave so the side-to-side motion stays visible.
+    this.camera.position.x
+      = roadAtShipX + sway * SHIP.CAMERA_SWAY_FOLLOW
     this.camera.position.y = VIEW.CAMERA_HEIGHT + shipY * VIEW.CAMERA_FOLLOW
     const roadAheadX = trackBend(VIEW.LOOK_AHEAD, this.offset)
     this.camera.lookAt(
-      shipX + (roadAheadX - shipX) * 0.35,
+      roadAheadX + sway * SHIP.CAMERA_SWAY_FOLLOW,
       VIEW.LOOK_HEIGHT + shipY * VIEW.CAMERA_FOLLOW * 0.5,
       VIEW.LOOK_AHEAD,
     )
