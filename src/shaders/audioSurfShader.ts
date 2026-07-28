@@ -123,22 +123,34 @@ void main() {
     vec3 base = mix(uCalmBase, uHotBase, uEnergy);
     vec3 rail = mix(uCalmRail, uHotRail, uEnergy);
 
-    // Outer rails — bright edges
-    float edge = smoothstep(halfW - 14.0, halfW - 4.0, abs(x));
+    // Outer rails — a crisp core wrapped in a softer neon glow
+    float edgeCore = line(abs(x) - (halfW - 5.0), 2.5);
+    float edgeGlow = line(abs(x) - (halfW - 8.0), 10.0) * 0.45;
+    float edge = edgeCore + edgeGlow;
 
     // Lane separators at +/- one lane width from center
-    float sep = line(abs(x) - laneW * 0.5, 1.6);
+    float sep = line(abs(x) - laneW * 0.5, 2.0);
 
     // Cross ties scrolling along the track
     float tiePos = fract(s / ${f(TRACK_MATH.TIE_SPACING)}) - 0.5;
-    float tie = line(tiePos * ${f(TRACK_MATH.TIE_SPACING)}, 2.2) * 0.5;
+    float tie = line(tiePos * ${f(TRACK_MATH.TIE_SPACING)}, 2.2);
+
+    // Alternating lane panels and fast-moving center dashes make the road
+    // readable even when the audio is quiet.
+    float laneIndex = floor((x + halfW) / laneW);
+    float lanePanel = mod(laneIndex, 2.0) * 0.045;
+    float dashCell = fract(s / 300.0);
+    float centerDash = line(x, 4.0)
+                     * step(0.12, dashCell) * step(dashCell, 0.55);
+    float centerGlow = exp(-abs(x) / 210.0) * 0.08;
 
     float brightness = 0.5 + uFlux * 2.2;
-    vec3 color = base * (0.6 + uFlux * 0.8)
-               + rail * (edge * 1.3 + sep * 0.55 + tie) * brightness;
+    vec3 color = base * (0.78 + lanePanel + centerGlow + uFlux * 0.8)
+               + rail * (edge * 1.55 + sep * 0.5 + tie * 0.32
+               + centerDash * 0.75) * brightness;
 
     // Fog fade toward the horizon
-    color = mix(color, uFogColor, pow(vT, 1.6));
+    color = mix(color, uFogColor, pow(vT, 2.4) * 0.82);
 
     gl_FragColor = vec4(color, 1.0);
 }
