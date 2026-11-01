@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Beat Tube</title>
   <link href="https://fonts.googleapis.com/css2?family=B612" rel="stylesheet">
   <style>
@@ -44,8 +45,8 @@
       border-radius: 0 8px 8px 0;
     }
   </style>
-  <script type="module" crossorigin src="/Beat-Tube/assets/index-C8idTuqK.js"></script>
-  <link rel="stylesheet" crossorigin href="/Beat-Tube/assets/index-DZpqOgzr.css">
+  <script type="module" crossorigin src="/Beat-Tube/assets/index-Dx7Huu1G.js"></script>
+  <link rel="stylesheet" crossorigin href="/Beat-Tube/assets/index-O6_0XiPv.css">
 </head>
 
 <body class="m-0">
@@ -55,24 +56,24 @@
   <div id="overlay" class="absolute flex justify-center h-screen w-screen items-center">
     <div id="webvr"></div>
     <div class="c-yellow50 flex flex-col items-center">
-      <h1 class="m0 text-8xl fw600 flex">
+      <h1 class="m0 text-5xl sm:text-8xl fw600 flex">
         Beat Tube
       </h1>
       <div class="flex justify-center w-screen flex-wrap">
         <div id="scr-share"
-          class="cursor-pointer flex flex-col w-sm items-center m-4 shrink-0 b-2 bg-orange-200 bg-op-20 hover-bg-orange-9">
+          class="cursor-pointer flex flex-col w-sm max-w-[calc(100%-2rem)] items-center m-4 shrink-0 b-2 bg-orange-200 bg-op-20 hover-bg-orange-9">
           <div class="c-orange500 text-2xl fw-600">Share System Audio</div>
           <div>Make sure to tick share system audio</div>
           <b id="scr-error" hidden class="c-red text-center">No audio detected. This may not be supported in your
             browser</b>
         </div>
         <div id="default-play"
-          class="cursor-pointer flex flex-col w-sm items-center m-4 shrink-0 b-2 bg-green-800 bg-op-20 hover-bg-green-9">
+          class="cursor-pointer flex flex-col w-sm max-w-[calc(100%-2rem)] items-center m-4 shrink-0 b-2 bg-green-800 bg-op-20 hover-bg-green-9">
           <div class="c-green500 text-2xl fw-600">Preview Music</div>
-          <div>Preview with a default song - Music: Bensound </div>
+          <div>Signal Path — synthesized for Beat Tube</div>
         </div>
         <div id="file-share"
-          class="cursor-pointer flex flex-col w-sm items-center m-4 shrink-0 b-2 bg-blue-800 bg-op-20 hover-bg-blue-9">
+          class="cursor-pointer flex flex-col w-sm max-w-[calc(100%-2rem)] items-center m-4 shrink-0 b-2 bg-blue-800 bg-op-20 hover-bg-blue-9">
           <input id="file-input" type="file" hidden>
           <div class="c-blue500 text-2xl fw-600">Browse Files</div>
           <div>Browse for audio file</div>
@@ -80,7 +81,7 @@
         </div>
       </div>
       <audio id="default-music">
-        <source src="/Beat-Tube/assets/bensound-allthat-YP4_hbOt.mp3">
+        <source src="/Beat-Tube/assets/signal-path-Bger6g50.mp3" type="audio/mpeg">
         </source>
       </audio>
     </div>
