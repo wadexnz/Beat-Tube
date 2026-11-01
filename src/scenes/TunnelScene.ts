@@ -102,7 +102,7 @@ export class TunnelScene implements IScene {
     this.clock = new Clock()
 
     const loader = new TextureLoader()
-    loader.load(`${import.meta.env.BASE_URL}img/stonePattern.jpg`, (texture: Texture) => {
+    loader.load(`${import.meta.env.BASE_URL}img/basalt-generated.png`, (texture: Texture) => {
       this.buildTube(texture)
     })
     window.addEventListener('resize', () => this.resize())

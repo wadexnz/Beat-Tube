@@ -17,6 +17,32 @@ product.
 
 Later features and refinements include work with AI coding agents.
 
+## Generated preview assets
+
+The preview music and tunnel texture were created for this project with
+AI-assisted source scripts, without third-party recordings, samples,
+photographs or reference images:
+
+- **Signal Path** (`audio/signal-path.mp3`): a 67-second, 120 BPM stereo
+  instrumental. Sine-wave harmonics and seeded noise generate the instruments
+  and drums; note patterns, arrangement, echoes and fades are in
+  `scripts/generate-preview.js`.
+- **Basalt texture** (`public/img/basalt-generated.png`): a 1024 × 1024
+  grayscale texture. Periodic Voronoi distances, coordinate warping and seeded
+  grain generate the repeating stone pattern in `scripts/generate-texture.js`.
+
+Regenerate with Bun, FFmpeg (including libmp3lame) and ImageMagick installed:
+
+```sh
+bun scripts/generate-preview.js
+bun scripts/generate-texture.js
+```
+
+The checked-in outputs do not require these tools at runtime. These replace
+the previous Bensound track and stone image in the current source tree;
+older Git revisions and deployments may still contain the earlier assets.
+This provenance description does not grant a repository-wide licence.
+
 ## Status and limitations
 
 This is a hobby project with rough edges, shared for experimentation rather
