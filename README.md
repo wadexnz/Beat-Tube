@@ -28,7 +28,7 @@ photographs or reference images:
   and drums; note patterns, arrangement, echoes and fades are in
   `scripts/generate-preview.js`.
 - **Basalt texture** (`public/img/basalt-generated.png`): a 1024 × 1024
-  grayscale texture. Periodic Voronoi distances, coordinate warping and seeded
+  greyscale texture. Periodic Voronoi distances, coordinate warping and seeded
   grain generate the repeating stone pattern in `scripts/generate-texture.js`.
 
 Regenerate with Bun, FFmpeg (including libmp3lame) and ImageMagick installed:
