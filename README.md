@@ -1,10 +1,46 @@
 # Beat Tube
 
-Music visualiser built with three js and vite
+A personal experiment in audio-reactive graphics, built with TypeScript,
+Three.js and Web Audio. Started in 2022 and developed intermittently, it is a
+place to play with music, shaders and 3D scenes—not a supported production
+product.
+
+[Try the visualiser](https://wadexnz.github.io/Beat-Tube/)
+
+## What’s here
+
+- Different visual scenes exploring how audio levels and onsets can drive
+  motion, colour and geometry.
+- Custom GLSL shaders alongside Three.js scene rendering.
+- Audio from a local file, the bundled preview track, or screen/tab audio
+  sharing where the browser supports it. Use the side arrows to switch scenes.
+
+Later features and refinements include work with AI coding agents.
+
+## Status and limitations
+
+This is a hobby project with rough edges, shared for experimentation rather
+than as a finished application. System-audio sharing depends on the browser
+and operating system, and rendering performance varies by device.
+
+Automated coverage currently focuses on the deployment script, not audio
+handling or visual behaviour. There is no claim of broad browser, mobile or
+VR compatibility.
 
 ## Usage
-- bun install
-- bun run dev
+
+With [Bun](https://bun.sh/) installed:
+
+```sh
+bun install
+bun run dev
+```
+
+Open the development server’s `/Beat-Tube/` path. To build the static site:
+
+```sh
+bun run build
+```
 
 ## Deploy to GitHub Pages
 
@@ -22,10 +58,6 @@ The deploy script builds locally, clones `wadexnz/Beat-Tube` at `gh-pages`,
 replaces that branch's generated files with `dist/`, and pushes it. It does not
 update the personal homepage in `wadexnz/wadexnz.github.io`. Vite's base path is
 `/Beat-Tube/`, including audio, scripts, styles and scene textures.
-
-For the initial move, deploy and verify `/Beat-Tube/` before publishing the
-landing page at the root. This replaces the old project-site redirect to `/`.
-Future visualiser deployments remain independent of the homepage.
 
 Check deployment behaviour without contacting GitHub:
 
