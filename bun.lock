@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "acid-o",
+      "name": "beat-tube",
       "dependencies": {
         "three": "^0.185.1",
       },

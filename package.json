@@ -1,5 +1,5 @@
 {
-  "name": "acid-o",
+  "name": "beat-tube",
   "version": "0.0.1",
   "scripts": {
     "dev": "bun --bun vite --host",

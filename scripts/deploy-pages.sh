@@ -3,9 +3,9 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Canonical site lives at https://wadexnz.github.io/ (the user Pages repo).
-DEPLOY_REPO="${DEPLOY_REPO:-https://github.com/wadexnz/wadexnz.github.io.git}"
-DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
+# Project Pages serves /Beat-Tube/ independently of the personal homepage.
+DEPLOY_REPO="${DEPLOY_REPO:-https://github.com/wadexnz/Beat-Tube.git}"
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-gh-pages}"
 DEPLOY_DIR="$(mktemp -d)"
 
 cleanup() {
@@ -40,4 +40,4 @@ git -C "$DEPLOY_DIR" commit -m "Deploy Beat-Tube"
 git -C "$DEPLOY_DIR" push origin "$DEPLOY_BRANCH"
 
 echo
-echo "Published to $DEPLOY_REPO ($DEPLOY_BRANCH) -> https://wadexnz.github.io/"
+echo "Published to $DEPLOY_REPO ($DEPLOY_BRANCH) -> https://wadexnz.github.io/Beat-Tube/"
